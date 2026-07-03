@@ -397,31 +397,31 @@
   padding: 20px;
 }
 
+/* إصلاح النافذة لتدعم تبديل الأنماط بوضوح */
 .modal {
   width: 100%;
   max-width: 520px;
-  background: var(--bg-card);
+  background: var(--bg-card) !important; /* الاعتماد على لون الكارد الديناميكي */
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
-  color: var(--text);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+  color: var(--text) !important; /* نص متوافق مع النمط المختار */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
-.modal-wide {
-  max-width: 900px; /* توسيع حزمة البحث لعرض نتائج الجداول بوضوح */
+.modal h2, .modal h1, .modal label {
+  color: var(--text) !important; /* ضمان وضوح العناوين والخطوط */
 }
 
+/* تحسين حقل الإدخال داخل النافذة */
 .text-input {
   width: 100%;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 10px;
   padding: 12px 14px;
-  color: var(--text);
-  font-size: 15px;
+  color: var(--text) !important;
 }
-
 .search-input {
   font-size: 15.5px;
 }
