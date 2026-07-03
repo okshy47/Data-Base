@@ -179,16 +179,16 @@
 }
 
 /* ---------- Empty state ---------- */
-.db-type-tag {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #ffffff !important; /* نص أبيض ناصع وواضح جداً */
-  background: #0066cc !important; /* خلفية زرقاء صريحة ومريحة للعين */
-  padding: 6px 12px;
-  border-radius: 6px;
-  display: inline-block;
-}  width: 74px;
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-faint);
+}
+
+.empty-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 74px;
   height: 74px;
   border-radius: 50%;
   background: var(--bg-elevated);
@@ -243,14 +243,16 @@
   gap: 14px;
 }
 
+/* تعديل الخطوة 2: إصلاح وضوح تباين اسم قاعدة البيانات */
 .db-type-tag {
   font-family: var(--font-mono);
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--accent);
-  background: var(--accent-glow);
-  padding: 4px 10px;
+  color: #ffffff !important; /* نص أبيض ناصع وواضح جداً */
+  background: #0066cc !important; /* خلفية زرقاء صريحة ومريحة للعين */
+  padding: 6px 12px;
   border-radius: 6px;
+  display: inline-block;
 }
 
 .db-name {
@@ -313,14 +315,8 @@
 /* ---------- Footer roadmap (منع التداخل تماماً) ---------- */
 .app-footer {
   position: fixed;
-  /* تأمين النصوص المساعدة داخل البحث الشامل لمنع اختفائها في الـ Light Mode */
-.search-input::placeholder {
-  color: var(--text-faint) !important;
-}
-
-.modal p, .modal span, .modal div {
-  color: var(--text-dim, var(--text)) !important;
-}
+  bottom: 0;
+  left: 0;
   right: 0;
   display: flex;
   justify-content: center;
@@ -428,6 +424,16 @@
   padding: 12px 14px;
   color: var(--text) !important;
 }
+
+/* تعديل الخطوة 3: تأمين النصوص المساعدة داخل البحث الشامل لمنع اختفائها في الـ Light Mode */
+.search-input::placeholder {
+  color: var(--text-faint) !important;
+}
+
+.modal p, .modal span, .modal div {
+  color: var(--text-dim, var(--text)) !important;
+}
+
 .search-input {
   font-size: 15.5px;
 }
