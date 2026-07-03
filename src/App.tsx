@@ -53,15 +53,20 @@ export default function App() {
 
   async function refreshAll() {
     setLoading(true);
-    const [dbs, storage, persistent] = await Promise.all([
-      listImportedDatabases(),
-      estimateStorageUsage(),
-      navigator.storage?.persisted ? navigator.storage.persisted() : Promise.resolve(null),
-    ]);
-    setDatabases(dbs);
-    setStorageInfo(storage);
-    setIsPersistent(persistent);
-    loading && setLoading(false);
+    try {
+      const [dbs, storage, persistent] = await Promise.all([
+        listImportedDatabases(),
+        estimateStorageUsage(),
+        navigator.storage?.persisted ? navigator.storage.persisted() : Promise.resolve(null),
+      ]);
+      setDatabases(dbs);
+      setStorageInfo(storage);
+      setIsPersistent(persistent);
+    } catch (error) {
+      console.error("Error refreshing database info:", error);
+    } finally {
+      setLoading(false); // تم الإصلاح هنا لضمان إغلاق شاشة التحميل دائماً وبشكل صحيح
+    }
   }
 
   async function handleEnablePersistence() {
@@ -89,7 +94,6 @@ export default function App() {
           </span>
           <div>
             <h1>مستكشف قواعد البيانات</h1>
-            {/* تم إزالة الجملة الفرعية بنجاح من هنا لتبسيط التصميم */}
           </div>
         </div>
 
