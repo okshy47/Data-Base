@@ -1,0 +1,68 @@
+{
+  "name": "db-explorer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "تطبيق لاستيراد قواعد البيانات (Excel / CSV / SQLite) والبحث داخلها بدون اتصال بالإنترنت",
+  "author": "DB Explorer",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "electron:dev": "vite build && electron .",
+    "electron:build:win": "vite build && electron-builder --win --publish never",
+    "electron:build:linux": "vite build && electron-builder --linux --publish never"
+  },
+  "dependencies": {
+    "dexie": "^4.4.4",
+    "idb": "^8.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sql.js": "^1.14.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/sql.js": "^1.4.11",
+    "@vitejs/plugin-react": "^6.0.3",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vite-plugin-pwa": "^1.3.0"
+  },
+  "build": {
+    "appId": "com.dbexplorer.app",
+    "productName": "مستكشف قواعد البيانات",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "electron/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "مستكشف-قواعد-البيانات-Setup-${version}.exe"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "electron/icon.png",
+      "category": "Utility"
+    }
+  }
+}
