@@ -23,3 +23,13 @@ jobs:
 
       - name: Build Electron App
         run: npm run build
+
+      - name: Upload Production Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Electron-App-Windows
+          path: |
+            dist/*.exe
+            release/*.exe
+            out/*.exe
+          if-no-files-found: warn
