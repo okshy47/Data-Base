@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { searchRows, getSearchableTables, type SearchResultItem } from './lib/search';
 import type { ImportedDatabase, ImportedTableSchema } from './lib/db';
+import { translations, getLanguage } from './lib/i18n'; // استيراد محرك اللغات
 
 const PAGE_SIZE = 50;
 
@@ -19,14 +20,17 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
   const [isSearching, setIsSearching] = useState(false);
   const [tableGroups, setTableGroups] = useState<{ database: ImportedDatabase; tables: ImportedTableSchema[] }[]>([]);
 
+  // جلب اللغة الحالية المحددة في التطبيق
+  const lang = getLanguage();
+  const t = translations[lang];
+
   useEffect(() => {
     getSearchableTables().then(setTableGroups);
   }, []);
 
-  // debounce بسيط: ننتظر توقف الكتابة قبل تنفيذ البحث الفعلي، لتفادي بحث مع كل حرف
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 250);
-    return () => clearTimeout(t);
+    const timeoutId = setTimeout(() => setDebouncedQuery(query), 250);
+    return () => clearTimeout(timeoutId);
   }, [query]);
 
   useEffect(() => {
@@ -65,7 +69,6 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
     if (scope.tableName) {
       return group.tables.find((t) => t.tableName === scope.tableName)?.columns ?? [];
     }
-    // كل الأعمدة الفريدة عبر جداول القاعدة المختارة
     return Array.from(new Set(group.tables.flatMap((t) => t.columns)));
   }, [scope, tableGroups]);
 
@@ -75,8 +78,8 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>بحث شامل في البيانات</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="إغلاق">
+          <h2>{t.globalSearch}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -87,19 +90,22 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
             <input
               autoFocus
               className="search-input"
-              placeholder="اكتب كلمة أو أكثر للبحث في كل قواعد بياناتك..."
+              placeholder={t.searchPlaceholder}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              style={{ paddingLeft: query ? '40px' : '12px' }}
+              style={{
+                paddingLeft: lang === 'ar' ? (query ? '40px' : '12px') : '12px',
+                paddingRight: lang === 'en' ? (query ? '40px' : '12px') : '12px'
+              }}
             />
             {query && (
               <button 
                 className="clear-search-btn"
                 onClick={() => setQuery('')}
-                title="مسح البحث"
                 style={{
                   position: 'absolute',
-                  left: '12px',
+                  left: lang === 'ar' ? '12px' : 'auto',
+                  right: lang === 'en' ? '12px' : 'auto',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
@@ -127,7 +133,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                 setColumn(null);
               }}
             >
-              <option value="">كل قواعد البيانات</option>
+              <option value="">{t.allDbs}</option>
               {tableGroups.map(({ database }) => (
                 <option key={database.id} value={database.id}>
                   {database.name}
@@ -144,7 +150,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                 setColumn(null);
               }}
             >
-              <option value="">كل الجداول</option>
+              <option value="">{t.allTables}</option>
               {tableGroups
                 .find((g) => g.database.id === scope.databaseId)
                 ?.tables.map((t) => (
@@ -160,7 +166,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               disabled={activeColumns.length === 0}
               onChange={(e) => setColumn(e.target.value || null)}
             >
-              <option value="">كل الأعمدة</option>
+              <option value="">{t.allColumns}</option>
               {activeColumns.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -171,29 +177,29 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
 
           {!debouncedQuery.trim() && (
             <div className="empty-state">
-              <p className="empty-sub">اكتب كلمة بحث للبدء. يمكنك تضييق نطاق باستخدام الفلاتر أعلاه.</p>
+              <p className="empty-sub">{t.searchStart}</p>
             </div>
           )}
 
           {debouncedQuery.trim() && isSearching && (
             <div className="status-box">
               <div className="spinner" />
-              <p>جارِ البحث والتحقق من الجداول...</p>
+              <p>{t.searching}</p>
             </div>
           )}
 
           {debouncedQuery.trim() && !isSearching && items.length === 0 && (
             <div className="empty-state">
-              <p className="empty-title">لا توجد نتائج مطابقة</p>
-              <p className="empty-sub">جرّب كلمات أقل أو تحقق من اختيار الأعمدة والفلاتر.</p>
+              <p className="empty-title">{t.noResults}</p>
+              <p className="empty-sub">{t.noResultsSub}</p>
             </div>
           )}
 
           {debouncedQuery.trim() && !isSearching && items.length > 0 && (
             <>
               <p className="results-summary">
-                {totalMatches.toLocaleString('ar-EG')} نتيجة مطابقة 
-                {truncated && ' (تم فحص جزء من البيانات الحالية فقط لضخامة حجم الملف)'}
+                {totalMatches.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.resultsCount}
+                {truncated && t.truncated}
               </p>
 
               <ul className="results-list">
@@ -210,17 +216,17 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               {totalPages > 1 && (
                 <div className="pagination">
                   <button className="btn btn-ghost" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                    السابق
+                    {t.prev}
                   </button>
                   <span className="pagination-label">
-                    صفحة {page + 1} من {totalPages}
+                    {t.page} {page + 1} {t.of} {totalPages}
                   </span>
                   <button
                     className="btn btn-ghost"
                     disabled={page + 1 >= totalPages}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    التالي
+                    {t.next}
                   </button>
                 </div>
               )}
@@ -232,20 +238,16 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
-// دالة مساعدة لتمييز الكلمة المبحوث عنها داخل النصوص المرجعة
 function HighlightedText({ text, highlight }: { text: string; highlight: string }) {
   if (!highlight.trim()) return <>{text}</>;
-  
   try {
-    // الهروب من الحروف الخاصة بالـ Regex
     const escapedHighlight = highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     const parts = text.split(new RegExp(`(${escapedHighlight})`, 'gi'));
-    
     return (
       <>
         {parts.map((part, i) => 
           part.toLowerCase() === highlight.toLowerCase() ? (
-            <mark key={i} className="text-highlight" style={{ backgroundColor: 'rgba(255, 213, 0, 0.3)', color: 'inherit', padding: '0 2px', borderRadius: '2px' }}>{part}</mark>
+            <mark key={i} style={{ backgroundColor: 'rgba(255, 213, 0, 0.3)', color: 'inherit', padding: '0 2px', borderRadius: '2px' }}>{part}</mark>
           ) : (
             part
           )
@@ -266,7 +268,6 @@ function ResultCard({
   highlightColumn: string | null;
   query: string;
 }) {
-  const entries = Object.entries(item.row.data);
   return (
     <li className="result-card">
       <div className="result-card-head">
@@ -274,15 +275,11 @@ function ResultCard({
         <span className="result-table-name">{item.row.tableName}</span>
       </div>
       <div className="result-fields">
-        {entries.map(([col, val]) => (
+        {Object.entries(item.row.data).map(([col, val]) => (
           <div key={col} className={`result-field ${col === highlightColumn ? 'result-field-hl' : ''}`}>
             <span className="result-field-key">{col}</span>
             <span className="result-field-val">
-              {val === null || val === '' ? (
-                '—'
-              ) : (
-                <HighlightedText text={String(val)} highlight={query} />
-              )}
+              {val === null || val === '' ? '—' : <HighlightedText text={String(val)} highlight={query} />}
             </span>
           </div>
         ))}
