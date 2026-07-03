@@ -58,7 +58,7 @@
   gap: 8px;
   padding: 8px 16px;
   border-radius: 999px;
-  font-size: 14px; /* تكبير نص حالة الاتصال */
+  font-size: 14px; /* نص حالة الاتصال */
   font-weight: 600;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
@@ -243,7 +243,7 @@
   gap: 14px;
 }
 
-/* تعديل الخطوة 2: إصلاح وضوح تباين اسم قاعدة البيانات */
+/* إصلاح وضوح تباين اسم قاعدة البيانات (التاغات الزرقاء) */
 .db-type-tag {
   font-family: var(--font-mono);
   font-size: 11.5px;
@@ -312,7 +312,7 @@
   font-family: var(--font-mono);
 }
 
-/* ---------- Footer roadmap (منع التداخل تماماً) ---------- */
+/* ---------- Footer roadmap ---------- */
 .app-footer {
   position: fixed;
   bottom: 0;
@@ -320,10 +320,9 @@
   right: 0;
   display: flex;
   justify-content: center;
-  gap: 24px; /* مسافة أمان أكبر */
+  gap: 24px;
   flex-wrap: wrap;
   padding: 16px 20px;
-  background: rgba(var(--bg), 0.95);
   background: var(--bg-elevated);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
@@ -334,7 +333,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px; /* خط الفوتر أوضح */
+  font-size: 12.5px;
   color: var(--text-faint);
   font-family: var(--font-mono);
   white-space: nowrap;
@@ -367,7 +366,7 @@
 .data-table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 14.5px; /* تكبير نصوص الجداول والمصفوفات بشكل مريح للعين */
+  font-size: 14.5px;
 }
 
 .data-table th,
@@ -395,27 +394,65 @@
   backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
-  z-index: 999; /* رفعه فوق واجهة البرنامج الافتراضية لمنع الشاشة السوداء */
+  z-index: 999; /* البقاء فوق كافة العناصر */
   padding: 20px;
 }
 
-/* إصلاح النافذة لتدعم تبديل الأنماط بوضوح */
+/* حل مشكلة الطول والاختفاء خلف شريط المهام ودعم التكبير */
 .modal {
   width: 100%;
   max-width: 520px;
-  background: var(--bg-card) !important; /* الاعتماد على لون الكارد الديناميكي */
+  max-height: calc(100vh - 40px); /* يمنع اختفاء العناصر أسفل الشاشة تماماً */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card) !important;
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
-  color: var(--text) !important; /* نص متوافق مع النمط المختار */
+  color: var(--text) !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  transition: max-width 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease;
+}
+
+/* كلاس التمدد لوضع ملء الشاشة الفائق */
+.modal.fullscreen {
+  max-width: 96vw !important;
+  max-height: 94vh !important;
+  border-radius: 12px;
+}
+
+/* التمرير الداخلي المنفصل لمحتويات النافذة */
+.modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+  margin-top: 16px;
 }
 
 .modal h2, .modal h1, .modal label {
-  color: var(--text) !important; /* ضمان وضوح العناوين والخطوط */
+  color: var(--text) !important;
 }
 
-/* تحسين حقل الإدخال داخل النافذة */
+/* أزرار واجهة التحكم العلوية للـ Modal */
+.fullscreen-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.fullscreen-toggle-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+/* تحسين حقل الإدخال */
 .text-input {
   width: 100%;
   background: var(--bg-elevated) !important;
@@ -425,7 +462,7 @@
   color: var(--text) !important;
 }
 
-/* تعديل الخطوة 3: تأمين النصوص المساعدة داخل البحث الشامل لمنع اختفائها في الـ Light Mode */
+/* تأمين النصوص والـ Placeholders في الوضع المضيء والداكن */
 .search-input::placeholder {
   color: var(--text-faint) !important;
 }
@@ -441,7 +478,7 @@
 /* ---------- Responsive ---------- */
 @media (max-width: 600px) {
   .app-footer {
-    position: static; /* إلغاء التثبيت المعيق على الشاشات الصغيرة لحل التداخل */
+    position: static;
     margin-top: 40px;
     padding: 20px;
     gap: 12px;
