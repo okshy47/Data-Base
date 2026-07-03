@@ -5,7 +5,7 @@
   "description": "تطبيق لاستيراد قواعد البيانات (Excel / CSV / SQLite) والبحث داخلها بدون اتصال بالإنترنت",
   "author": "DB Explorer",
 
-  "main": "electron/main.js",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
