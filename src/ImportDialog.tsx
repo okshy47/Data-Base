@@ -118,7 +118,7 @@ export default function ImportDialog({ onClose, onImported }: { onClose: () => v
           {stage.kind === 'reading' && (
             <div className="status-box">
               <Spinner />
-              <p>جارِ قراءة الملف «{stage.fileName}»...</p>
+              <p style={{ marginTop: 12 }}>جارِ قراءة وفهرسة الملف «{stage.fileName}»...</p>
             </div>
           )}
 
@@ -163,7 +163,8 @@ export default function ImportDialog({ onClose, onImported }: { onClose: () => v
           {stage.kind === 'saving' && (
             <div className="status-box">
               <Spinner />
-              <p>جارِ الحفظ على جهازك...</p>
+              <p style={{ marginTop: 12 }}>جارِ تشفير وحفظ البيانات بشكل دائم على جهازك...</p>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted, #888)', marginTop: 4 }}>قد يستغرق ذلك ثوانٍ معدودة حسب حجم الملف.</p>
             </div>
           )}
 
@@ -171,7 +172,7 @@ export default function ImportDialog({ onClose, onImported }: { onClose: () => v
             <div className="status-box status-success">
               <CheckIcon />
               <p>تم استيراد «{stage.fileName}» وحفظها بنجاح على جهازك.</p>
-              <button className="btn btn-primary" onClick={onClose}>
+              <button className="btn btn-primary" onClick={onClose} style={{ marginTop: 12 }}>
                 تم
               </button>
             </div>
@@ -181,7 +182,7 @@ export default function ImportDialog({ onClose, onImported }: { onClose: () => v
             <div className="status-box status-error">
               <ErrorIcon />
               <p>{stage.message}</p>
-              <button className="btn btn-secondary" onClick={() => setStage({ kind: 'idle' })}>
+              <button className="btn btn-secondary" onClick={() => setStage({ kind: 'idle' })} style={{ marginTop: 12 }}>
                 المحاولة مرة أخرى
               </button>
             </div>
@@ -201,21 +202,52 @@ function UploadIcon() {
   );
 }
 
+// مؤشر تحميل ذكي متحرك تفاعلي يدعم الحركة الدائرية مباشرة
 function Spinner() {
-  return <div className="spinner" />;
+  return (
+    <div style={{ display: 'grid', placeItems: 'center', padding: '10px' }}>
+      <svg 
+        style={{ animation: 'spin 1s linear infinite' }} 
+        viewBox="0 0 24 24" 
+        width="40" 
+        height="40"
+      >
+        <circle 
+          style={{ opacity: 0.25 }} 
+          cx="12" 
+          cy="12" 
+          r="10" 
+          stroke="currentColor" 
+          strokeWidth="3.5" 
+          fill="none" 
+        />
+        <path 
+          style={{ opacity: 0.85 }} 
+          fill="currentColor" 
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
+        />
+      </svg>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 function CheckIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M20 6 9 17l-5-5" />
+    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="green" strokeWidth="2.5" style={{ marginBottom: 8 }}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
   );
 }
 
 function ErrorIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="red" strokeWidth="2" style={{ marginBottom: 8 }}>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 8v5M12 16h.01" />
     </svg>
