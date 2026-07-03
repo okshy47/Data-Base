@@ -28,8 +28,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Electron-App-Windows
-          path: |
-            dist/*.exe
-            release/*.exe
-            out/*.exe
+          path: .
           if-no-files-found: warn
