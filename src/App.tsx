@@ -50,8 +50,7 @@ const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'd
   }, [lang]);
 
   // حماية كائن الترجمات من الـ undefined
-  const t = translations[lang] || translations['ar'];
-  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+const t = translations && lang && translations[lang] ? translations[lang] : (translations?.ar || {});  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   const toggleLang = () => setLangState((prev) => (prev === 'ar' ? 'en' : 'ar'));
 
   useEffect(() => {
