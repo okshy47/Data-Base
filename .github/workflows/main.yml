@@ -16,17 +16,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build Electron App
-        run: npm run package
+      - name: Build Electron App for Windows
+        run: npm run electron:build:win
 
       - name: Upload Production Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Electron-App-Windows
-          path: .
-          if-no-files-found: warn
+          path: release/*.exe
+          if-no-files-found: error
