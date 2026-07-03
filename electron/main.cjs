@@ -1,10 +1,5 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-// إعداد بدائل require التقليدية لتتوافق مع ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { app, BrowserWindow, Menu } = require('electron');
+const path = require('node:path');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -21,11 +16,8 @@ function createWindow() {
   // إخفاء قائمة القوائم الافتراضية
   Menu.setApplicationMenu(null);
 
-  // تحميل ملف الواجهة المبني بواسطة Vite
-  // electron-builder يقوم بوضع الملفات في مجلد dist عند البناء للإنتاج
-  const indexPath = path.join(__dirname, '../dist/index.html');
-  win.loadFile(indexPath).catch(() => {
-    // في بيئة التطوير المحلية إذا لم يجد الملف
+  // تحميل ملف الواجهة الأساسي
+  win.loadFile(path.join(__dirname, '../dist/index.html')).catch(() => {
     win.loadURL('http://localhost:5173');
   });
 }
