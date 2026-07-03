@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { searchRows, getSearchableTables, type SearchResultItem } from './lib/search';
 import type { ImportedDatabase, ImportedTableSchema } from './lib/db';
-import { translations, getLanguage } from './lib/i18n'; // استيراد محرك اللغات
+import { translations, getLanguage } from './lib/i18n'; 
 
 const PAGE_SIZE = 50;
 
@@ -20,12 +20,12 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
   const [isSearching, setIsSearching] = useState(false);
   const [tableGroups, setTableGroups] = useState<{ database: ImportedDatabase; tables: ImportedTableSchema[] }[]>([]);
 
-  // جلب اللغة الحالية المحددة في التطبيق
-  const lang = getLanguage();
-  const t = translations[lang];
+  // تأمين جلب اللغة والترجمات لمنع ظهور الشاشة السوداء
+  const lang = getLanguage() || 'ar';
+  const t = translations[lang] || translations['ar'];
 
   useEffect(() => {
-    getSearchableTables().then(setTableGroups);
+    getSearchableTables().then(setTableGroups).catch(err => console.error("Error loading tables:", err));
   }, []);
 
   useEffect(() => {
@@ -52,9 +52,12 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
       PAGE_SIZE
     ).then((res) => {
       if (cancelled) return;
-      setItems(res.items);
-      setTotalMatches(res.totalMatches);
-      setTruncated(res.truncated);
+      setItems(res?.items || []);
+      setTotalMatches(res?.totalMatches || 0);
+      setTruncated(res?.truncated || false);
+      setIsSearching(false);
+    }).catch(err => {
+      console.error("Search error:", err);
       setIsSearching(false);
     });
     return () => {
@@ -75,18 +78,20 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
   const totalPages = Math.max(1, Math.ceil(totalMatches / PAGE_SIZE));
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="modal-overlay" onClick={onClose} style={{ display: 'grid', placeItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-panel, #1e293b)', borderRadius: '8px', width: '90%', maxWidth: '1000px', padding: '20px' }}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h2>{t.globalSearch}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-main)' }}>
             ✕
           </button>
         </div>
 
         <div className="modal-body">
-          <div className="search-input-row" style={{ position: 'relative' }}>
-            <SearchGlyph />
+          <div className="search-input-row" style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+            <div style={{ position: 'absolute', right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto', display: 'grid', placeItems: 'center' }}>
+              <SearchGlyph />
+            </div>
             <input
               autoFocus
               className="search-input"
@@ -94,8 +99,14 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               style={{
-                paddingLeft: lang === 'ar' ? (query ? '40px' : '12px') : '12px',
-                paddingRight: lang === 'en' ? (query ? '40px' : '12px') : '12px'
+                width: '100%',
+                padding: '12px',
+                paddingRight: lang === 'ar' ? '40px' : '12px',
+                paddingLeft: lang === 'en' ? '40px' : '12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color, #334155)',
+                background: 'var(--bg-input, #0f172a)',
+                color: 'var(--text-main, #f8fafc)'
               }}
             />
             {query && (
@@ -111,10 +122,8 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: 'var(--text-muted)',
+                  color: 'var(--text-muted, #94a3b8)',
                   fontSize: '16px',
-                  display: 'grid',
-                  placeItems: 'center',
                   padding: '4px'
                 }}
               >
@@ -123,7 +132,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
-          <div className="filters-row">
+          <div className="filters-row" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
             <select
               className="filter-select"
               value={scope.databaseId ?? ''}
@@ -132,6 +141,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                 setScope({ databaseId: val, tableName: null });
                 setColumn(null);
               }}
+              style={{ flex: 1, padding: '8px', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
             >
               <option value="">{t.allDbs}</option>
               {tableGroups.map(({ database }) => (
@@ -149,6 +159,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                 setScope((s) => ({ ...s, tableName: e.target.value || null }));
                 setColumn(null);
               }}
+              style={{ flex: 1, padding: '8px', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
             >
               <option value="">{t.allTables}</option>
               {tableGroups
@@ -165,6 +176,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               value={column ?? ''}
               disabled={activeColumns.length === 0}
               onChange={(e) => setColumn(e.target.value || null)}
+              style={{ flex: 1, padding: '8px', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-color)' }}
             >
               <option value="">{t.allColumns}</option>
               {activeColumns.map((c) => (
@@ -176,20 +188,19 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
           </div>
 
           {!debouncedQuery.trim() && (
-            <div className="empty-state">
+            <div className="empty-state" style={{ textAlign: 'center', padding: '4px' }}>
               <p className="empty-sub">{t.searchStart}</p>
             </div>
           )}
 
           {debouncedQuery.trim() && isSearching && (
-            <div className="status-box">
-              <div className="spinner" />
+            <div className="status-box" style={{ textAlign: 'center', padding: '20px' }}>
               <p>{t.searching}</p>
             </div>
           )}
 
           {debouncedQuery.trim() && !isSearching && items.length === 0 && (
-            <div className="empty-state">
+            <div className="empty-state" style={{ textAlign: 'center', padding: '20px' }}>
               <p className="empty-title">{t.noResults}</p>
               <p className="empty-sub">{t.noResultsSub}</p>
             </div>
@@ -197,12 +208,12 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
 
           {debouncedQuery.trim() && !isSearching && items.length > 0 && (
             <>
-              <p className="results-summary">
+              <p className="results-summary" style={{ marginBottom: '10px' }}>
                 {totalMatches.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.resultsCount}
                 {truncated && t.truncated}
               </p>
 
-              <ul className="results-list">
+              <ul className="results-list" style={{ listStyle: 'none', padding: 0, maxHeight: '400px', overflowY: 'auto' }}>
                 {items.map((item) => (
                   <ResultCard 
                     key={item.row.id} 
@@ -214,7 +225,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               </ul>
 
               {totalPages > 1 && (
-                <div className="pagination">
+                <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '15px' }}>
                   <button className="btn btn-ghost" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                     {t.prev}
                   </button>
@@ -224,7 +235,7 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
                   <button
                     className="btn btn-ghost"
                     disabled={page + 1 >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => setPage((p) => p - 1)}
                   >
                     {t.next}
                   </button>
@@ -269,15 +280,15 @@ function ResultCard({
   query: string;
 }) {
   return (
-    <li className="result-card">
-      <div className="result-card-head">
-        <span className="db-type-tag">{item.databaseName}</span>
-        <span className="result-table-name">{item.row.tableName}</span>
+    <li className="result-card" style={{ padding: '12px', borderBottom: '1px solid var(--border-color)', marginBottom: '8px' }}>
+      <div className="result-card-head" style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+        <span className="db-type-tag" style={{ fontSize: '12px', padding: '2px 6px', background: '#3b82f6', borderRadius: '4px' }}>{item.databaseName}</span>
+        <span className="result-table-name" style={{ fontWeight: 'bold' }}>{item.row.tableName}</span>
       </div>
-      <div className="result-fields">
+      <div className="result-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
         {Object.entries(item.row.data).map(([col, val]) => (
-          <div key={col} className={`result-field ${col === highlightColumn ? 'result-field-hl' : ''}`}>
-            <span className="result-field-key">{col}</span>
+          <div key={col} className={`result-field ${col === highlightColumn ? 'result-field-hl' : ''}`} style={{ background: col === highlightColumn ? 'rgba(59, 130, 246, 0.1)' : 'none', padding: '4px', borderRadius: '4px' }}>
+            <span className="result-field-key" style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)' }}>{col}</span>
             <span className="result-field-val">
               {val === null || val === '' ? '—' : <HighlightedText text={String(val)} highlight={query} />}
             </span>
