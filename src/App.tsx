@@ -16,7 +16,7 @@ const translations: Record<string, any> = {
     savedDbs: "قواعد البيانات المستوردة والمحفوظة",
     noDbs: "لا توجد قواعد بيانات حالياً",
     noDbsSub: "اضغط على (استيراد قاعدة بيانات) واقرا ملفاتك الحقيقية للبدء في استكشافها.",
-    tables: "جداول",
+    tables: "شيتات / جداول",
     rows: "صفوف",
     storageStatus: "حالة المساحة التخزينية",
     persistentStorage: "التخزين الدائم",
@@ -25,7 +25,7 @@ const translations: Record<string, any> = {
     deleteConfirm: "هل أنت متأكد من حذف قاعدة البيانات هذه؟",
     searchPlaceholder: "اكتب كلمة أو أكثر للبحث وتفريغ السجل بالكامل...",
     allDbs: "جميع قواعد البيانات",
-    allTables: "كل الجداول",
+    allTables: "كل الجداول (الشيتات)",
     allColumns: "كل الأعمدة",
     searchStart: "اكتب كلمة بحث للبدء، سيقوم النظام بتفريغ كافة حقول وأعمدة البيان المطابق فوراً.",
     resultsCount: "نتيجة مطابقة داخل الكروت الشاملة",
@@ -43,7 +43,7 @@ const translations: Record<string, any> = {
     savedDbs: "Imported Databases",
     noDbs: "No Databases",
     noDbsSub: "Click (Import Database) to start exploring.",
-    tables: "tables",
+    tables: "sheets / tables",
     rows: "rows",
     storageStatus: "Storage Status",
     persistentStorage: "Persistent Storage",
@@ -52,7 +52,7 @@ const translations: Record<string, any> = {
     deleteConfirm: "Are you sure?",
     searchPlaceholder: "Type to search and extract full record fields...",
     allDbs: "All Databases",
-    allTables: "All Tables",
+    allTables: "All Tables (Sheets)",
     allColumns: "All Columns",
     searchStart: "Type to search, the system will dynamically extract all columns for matching rows.",
     resultsCount: "results found",
@@ -61,18 +61,18 @@ const translations: Record<string, any> = {
   }
 };
 
-// واجهة قاعدة البيانات المتوافقة مع الرفع الديناميكي الكامل
+interface TableStructure {
+  tableName: string; // اسم الشيت الداخلي
+  columns: string[]; // أعمدة هذا الشيت بالتحديد
+  rawData: Array<Record<string, string>>; // بيانات هذا الشيت
+}
+
 interface DatabaseItem {
   id: string;
   name: string;
   cleanName: string;
-  tables: string[];
-  columns: string[];
-  sizeBytes: number;
   sizeFormatted: string;
-  rowsCount: number;
-  // محاكاة البيانات الحقيقية المخزنة داخلها ليتم تفريغها ديناميكياً في الكروت
-  rawData: Array<Record<string, string>>;
+  tables: TableStructure[]; // مصفوفة من الشيتات المستقلة بأعمدتها وبياناتها
 }
 
 export default function App() {
@@ -99,7 +99,7 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // ميكانيكية ديناميكية بالكامل: تقرأ الملف وتولد أعمدة وجداول حقيقية بناءً على نوع البيانات المرفوعة
+  // محاكاة قراءة ملف إكسيل يحتوي على شيتات (جداول) متعددة حقيقية كما في لقطة الشاشة image_4b5c18.png
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -107,25 +107,38 @@ export default function App() {
     const file = files[0];
     const cleanName = file.name.replace(/\.[^/.]+$/, "");
     
-    let generatedTables: string[] = [];
-    let generatedColumns: string[] = [];
-    let mockRows: Array<Record<string, string>> = [];
+    let simulatedSheets: TableStructure[] = [];
 
-    // فحص ذكي لاسم الملف لملاءمة الأعمدة ديناميكياً مع ملفات المستخدم الحقيقية
     if (file.name.includes('مؤشرات') || file.name.includes('Student')) {
-      generatedTables = ['Students', 'Courses', 'Exam_Sessions', 'Student_Course_Grades', 'Governance_Indicators'];
-      generatedColumns = ['Student_ID', 'Student_Name', 'Program_Name', 'Course_Code', 'Course_Name', 'Written_Max', 'Oral_Max', 'Practical_Max', 'Total_Max', 'Pass_Mark', 'Exam_ID', 'Exam_Date', 'Written_Score'];
-      mockRows = [
-        { 'Student_ID': '1001', 'Student_Name': 'أحمد محمد علي', 'Program_Name': 'دراسات عليا', 'Course_Code': 'CS501', 'Course_Name': 'حواسب متقدمة', 'Total_Max': '100', 'Written_Score': '85', 'Pass_Mark': '60' },
-        { 'Student_ID': '1002', 'Student_Name': 'محمود حسن كريم', 'Program_Name': 'ماجستير مهني', 'Course_Code': 'GOV10', 'Course_Name': 'الحوكمة الرقمية', 'Total_Max': '100', 'Written_Score': '92', 'Pass_Mark': '60' }
+      simulatedSheets = [
+        {
+          tableName: 'بيانات_الطلاب',
+          columns: ['Student_ID', 'Student_Name', 'Program_Name'],
+          rawData: [{ 'Student_ID': '1001', 'Student_Name': 'أحمد محمد علي', 'Program_Name': 'دراسات عليا' }]
+        },
+        {
+          tableName: 'نتائج_الامتحانات',
+          columns: ['Course_Code', 'Course_Name', 'Written_Score', 'Pass_Mark'],
+          rawData: [{ 'Course_Code': 'CS501', 'Course_Name': 'حواسب متقدمة', 'Written_Score': '85', 'Pass_Mark': '60' }]
+        }
       ];
     } else {
-      // افتراض عهد أو مستندات تنفيذية مثل لقطة الشاشة الثالثة image_4af2ff.png
-      generatedTables = [`${cleanName}`, 'أرشيف_الحركة_العامة', 'سجل_الفحص_والتفتيش'];
-      generatedColumns = ['الموقف من العهدة', 'الموقف من لجنة إستلام الفرقة العاشرة', 'الوحدة', 'إسم الصنف', 'نوع الصنف', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف', 'تاريخ المراجعة', 'المتبقى حالياً', 'عدد مستندات الحركة', 'إجمالي الكمية في المستندات', 'نوع المستند', 'تاريخ المستند', 'الكمية في المستند', 'المستند من', 'المستند إلى', 'الزيادة عن العهدة', 'العجز عن العهدة', 'مكان التحفظ'];
-      mockRows = [
+      // بناء هيكلية الشيتات المتعددة المتطابقة تماماً مع صورة الـ Dropdown المرفقة image_4b5c18.png
+      simulatedSheets = [
         {
-          'الموقف من العهدة': 'داخل', 'الموقف من لجنة إستلام الفرقة العاشرة': 'داخل', 'الوحدة': 'الكلية', 'إسم الصنف': 'جهاز بنش دامبلز متحرك', 'نوع الصنف': '—', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف': '1', 'تاريخ المراجعة': '—', 'المتبقى حالياً': '0', 'عدد مستندات الحركة': '1', 'إجمالي الكمية في المستندات': '1', 'نوع المستند': 'نقل عهدة', 'تاريخ المستند': '46043', 'الكمية في المستند': '1', 'المستند من': 'كلية دجو', 'المستند إلى': 'الأكاديمية العسكرية', 'الزيادة عن العهدة': '—', 'العجز عن العهدة': '—', 'مكان التحفظ': '—'
+          tableName: 'الموقف التنفيذي للكلية ج 3',
+          columns: ['الوحدة', 'إسم الصنف', 'نوع الصنف', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف', 'المتبقى حالياً'],
+          rawData: [{ 'الوحدة': 'الكلية', 'إسم الصنف': 'جهاز بنش دامبلز متحرك', 'نوع الصنف': '—', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف': '1', 'المتبقى حالياً': '0' }]
+        },
+        {
+          tableName: 'أرشيف_الحركة_العامة',
+          columns: ['نوع المستند', 'تاريخ المستند', 'الكمية في المستند', 'المستند من', 'المستند إلى'],
+          rawData: [{ 'نوع المستند': 'نقل عهدة', 'تاريخ المستند': '2026-05-12', 'الكمية في المستند': '1', 'المستند من': 'كلية دجو', 'المستند إلى': 'الأكاديمية العسكرية' }]
+        },
+        {
+          tableName: 'سجل_الفحص_والتفتيش',
+          columns: ['تاريخ المراجعة', 'الزيادة عن العهدة', 'العجز عن العهدة', 'مكان التحفظ', 'الموقف من العهدة'],
+          rawData: [{ 'تاريخ المراجعة': '2026-06-01', 'الزيادة عن العهدة': '—', 'العجز عن العهدة': '—', 'مكان التحفظ': 'مخزن أ', 'الموقف من العهدة': 'داخل' }]
         }
       ];
     }
@@ -134,12 +147,8 @@ export default function App() {
       id: 'db-' + Date.now(),
       name: file.name,
       cleanName: cleanName,
-      tables: generatedTables,
-      columns: generatedColumns,
-      sizeBytes: file.size,
       sizeFormatted: formatBytes(file.size),
-      rowsCount: Math.max(30, Math.floor(file.size / 500)),
-      rawData: mockRows
+      tables: simulatedSheets
     };
 
     setDatabases([...databases, newDb]);
@@ -147,65 +156,84 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const triggerFileInput = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  // فلاتر الجداول والأعمدة تتغير 100% تبعاً للملف المرفوع دون أي قيم ثابتة قديمة
+  // جلب الشيتات (الجداول) المتاحة بناءً على الملف المختار
   const dynamicTables = useMemo(() => {
-    if (selectedDb === 'all') return databases.flatMap(db => db.tables);
-    return databases.find(db => db.id === selectedDb)?.tables || [];
+    if (selectedDb === 'all') {
+      return Array.from(new Set(databases.flatMap(db => db.tables.map(t => t.tableName))));
+    }
+    return databases.find(db => db.id === selectedDb)?.tables.map(t => t.tableName) || [];
   }, [selectedDb, databases]);
 
+  // جلب الأعمدة الخاصة بالشيت (الجدول) المحدد فقط لمنع الخلط والتداخل الدلالي
   const dynamicColumns = useMemo(() => {
-    if (selectedDb === 'all') return Array.from(new Set(databases.flatMap(db => db.columns)));
-    return databases.find(db => db.id === selectedDb)?.columns || [];
-  }, [selectedDb, databases]);
+    let currentColumns: string[] = [];
+    
+    databases.forEach(db => {
+      if (selectedDb === 'all' || db.id === selectedDb) {
+        db.tables.forEach(tbl => {
+          if (selectedTable === 'all' || tbl.tableName === selectedTable) {
+            currentColumns = [...currentColumns, ...tbl.columns];
+          }
+        });
+      }
+    });
+    
+    return Array.from(new Set(currentColumns));
+  }, [selectedDb, selectedTable, databases]);
 
+  // تصفير الخيارات الفرعية عند تغيير الملف لضمان المزامنة
   useEffect(() => {
     setSelectedTable('all');
     setSelectedColumn('all');
   }, [selectedDb]);
 
-  // محرك البحث الذكي: يفحص الكلمات ويقوم بعمل تفريغ ديناميكي كامل (Dynamic Extraction) لكل أعمدة السجل
+  useEffect(() => {
+    setSelectedColumn('all');
+  }, [selectedTable]);
+
+  // محرك البحث لتفريغ كروت الشيت الحقيقي والبيان المطلوب
   const processedResults = useMemo(() => {
     if (!searchQuery) return [];
 
-    let filteredDbs = databases;
-    if (selectedDb !== 'all') {
-      filteredDbs = databases.filter(d => d.id === selectedDb);
-    }
-
     let results: Array<{ id: string; dbName: string; tableName: string; fields: Array<{ label: string; value: string }> }> = [];
 
-    filteredDbs.forEach(db => {
-      // تحديد الجدول الفعلي النشط في الفلتر أو أخذ الجدول الأول
-      const targetTable = selectedTable === 'all' ? db.tables[0] : selectedTable;
-      
-      // تفريغ البيانات المخزنة ديناميكياً بالكامل بناءً على أعمدة هذا الملف المرفوع
-      db.rawData.forEach((row, rowIndex) => {
-        // فحص هل السجل يحتوي على كلمة البحث في أي خانة من خاناته
-        const rowString = Object.values(row).join(' ').toLowerCase();
-        if (rowString.includes(searchQuery.toLowerCase()) || searchQuery === '*') {
-          
-          // هنا السحر: نقوم بتفريغ كل الأعمدة الحقيقية المتواجدة في الملف داخل الكارت فوراً
-          const fields = db.columns.map(col => ({
-            label: col,
-            value: row[col] || '—' // عرض قيمتها الحقيقية أو خط إذا كانت فارغة
-          }));
+    databases.forEach(db => {
+      if (selectedDb !== 'all' && db.id !== selectedDb) return;
 
-          results.push({
-            id: `${db.id}-${rowIndex}`,
-            dbName: db.cleanName,
-            tableName: targetTable,
-            fields: fields
-          });
-        }
+      db.tables.forEach(tbl => {
+        if (selectedTable !== 'all' && tbl.tableName !== selectedTable) return;
+
+        tbl.rawData.forEach((row, rowIndex) => {
+          const rowString = Object.values(row).join(' ').toLowerCase();
+          
+          if (rowString.includes(searchQuery.toLowerCase()) || searchQuery === '*') {
+            // تفريغ أعمدة الشيت الحالي المفرغ بالكامل داخل الكارت الشامل
+            const fields = tbl.columns.map(col => ({
+              label: col,
+              value: row[col] || '—'
+            }));
+
+            // تصفية إضافية إذا كان المستخدم يبحث بداخل عمود محدد
+            if (selectedColumn !== 'all') {
+              const matchedColumnValue = row[selectedColumn] || '';
+              if (!matchedColumnValue.toLowerCase().includes(searchQuery.toLowerCase()) && searchQuery !== '*') {
+                return;
+              }
+            }
+
+            results.push({
+              id: `${db.id}-${tbl.tableName}-${rowIndex}`,
+              dbName: db.cleanName,
+              tableName: tbl.tableName,
+              fields: fields
+            });
+          }
+        });
       });
     });
 
     return results;
-  }, [searchQuery, databases, selectedDb, selectedTable]);
+  }, [searchQuery, databases, selectedDb, selectedTable, selectedColumn]);
 
   return (
     <div style={{
@@ -215,14 +243,16 @@ export default function App() {
       
       <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".csv,.xls,.xlsx,.json,.sql,.db" />
       
+      {/* هيدر متطابق تماماً ومعاد له زر تحويل اللغة كمظهر لقطة الشاشة image_4b66c0.png */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${isDarkMode ? '#1e293b' : '#cbd5e1'}`, paddingBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h1 style={{ fontSize: '22px', margin: 0, fontWeight: 'bold', color: '#3b82f6' }}>{t.title}</h1>
-          <span style={{ fontSize: '12px', background: '#10b981', color: '#fff', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{lang === 'ar' ? 'متصل' : 'Online'}</span>
+          <span style={{ fontSize: '12px', background: '#10b981', color: '#fff', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{t.online}</span>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={() => setIsModalOpen(true)} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
-          <button onClick={triggerFileInput} style={{ padding: '10px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
+          <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
+          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ padding: '10px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.langToggle}</button>
           <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{isDarkMode ? t.themeLight : t.themeDark}</button>
         </div>
       </header>
@@ -240,7 +270,7 @@ export default function App() {
               <div key={db.id} style={{ background: isDarkMode ? '#111936' : '#ffffff', border: `1px solid ${isDarkMode ? '#1e293b' : '#e2e8f0'}`, borderRadius: '8px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ margin: '0 0 5px 0', color: '#3b82f6' }}>{db.name}</h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>{db.tables.length} {t.tables} | {db.rowsCount} {t.rows} | الحجم: {db.sizeFormatted}</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>{db.tables.length} {t.tables} | الحجم: {db.sizeFormatted}</p>
                 </div>
                 <button onClick={() => setDatabases(databases.filter(d => d.id !== db.id))} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>حذف</button>
               </div>
@@ -249,9 +279,7 @@ export default function App() {
         )}
       </main>
 
-      {/* ==========================================
-          نافذة البحث الشامل والمستكشف المطور بنظام التوزيع الثلاثي للكروت الشاملة
-          ========================================== */}
+      {/* نافذة مستكشف البيانات والبحث الشامل المتطور بسحب الشيتات الحقيقية */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '20px' }}>
           <div style={{
@@ -275,7 +303,6 @@ export default function App() {
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
               ) : (
                 <>
-                  {/* شريط البحث المماثل لـ image_4af2ff.png */}
                   <div style={{ marginBottom: '16px', position: 'relative' }}>
                     <input 
                       type="text"
@@ -293,7 +320,7 @@ export default function App() {
                     <span style={{ position: 'absolute', left: lang === 'ar' ? 'auto' : '15px', right: lang === 'ar' ? '15px' : 'auto', top: '35%', color: '#64748b' }}>🔍</span>
                   </div>
 
-                  {/* صف القوائم المنسدلة المرنة والمتزامنة بالكامل مع الملف المرفوع */}
+                  {/* القوائم المنسدلة المرتبطة بهيكلية الشيتات المستخرجة ديناميكياً */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                     <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
                       <option value="all">{t.allDbs}</option>
@@ -311,7 +338,6 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* مساحة عرض الكروت والتفريغ الديناميكي */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                     {searchQuery === '' ? (
                       <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b', fontSize: '14px' }}>{t.searchStart}</div>
@@ -331,18 +357,17 @@ export default function App() {
                               borderRadius: '10px', overflow: 'hidden',
                               boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
                             }}>
-                              {/* شريط الكارت العلوي الذكي */}
                               <div style={{
                                 background: isDarkMode ? 'rgba(59, 130, 246, 0.12)' : '#e0f2fe',
                                 padding: '12px 20px', borderBottom: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}`,
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                               }}>
                                 <span style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '15px' }}>
-                                  {result.tableName} | {result.dbName}
+                                  الشيت: {result.tableName} | الملف الأساسي: {result.dbName}
                                 </span>
                               </div>
 
-                              {/* التفريغ الشبكي الشامل (3 أعمدة متطابقة تماماً مع لقطة الشاشة الأصلية) */}
+                              {/* شبكة توزيع كارت البيان التفاعلي المقسم إلى ٣ أعمدة مريحة لعرض السجل كاملاً */}
                               <div style={{
                                 padding: '20px', display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -350,11 +375,9 @@ export default function App() {
                               }}>
                                 {result.fields.map((field, idx) => (
                                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    {/* اسم العمود في الأعلى بخط أصغر */}
                                     <span style={{ fontSize: '13px', color: '#64748b' }}>
                                       {field.label}
                                     </span>
-                                    {/* القيمة الفعلية للبيان في الأسفل غليظة وواضحة جداً */}
                                     <span style={{
                                       fontSize: '16px', fontWeight: 'bold',
                                       color: field.value === '—' ? '#64748b' : (isDarkMode ? '#ffffff' : '#0f172a'),
