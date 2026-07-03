@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
+  /* الوضع الداكن الافتراضي المستقر */
   --bg: #0b1220;
   --bg-elevated: #111a2c;
   --bg-card: #16213a;
@@ -18,6 +19,23 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* تجهيز فئات الوضع المضيء ليتم تفعيلها برمجياً لاحقاً */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --bg-elevated: #f1f5f9;
+  --bg-card: #ffffff;
+  --border: #cbd5e1;
+  --border-bright: #94a3b8;
+  --text: #0f172a;
+  --text-dim: #334155;
+  --text-faint: #64748b;
+  --accent: #0284c7;
+  --accent-dim: #0369a1;
+  --accent-glow: rgba(2, 132, 199, 0.12);
+  --good: #10b981;
+  --warn: #d97706;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -31,10 +49,13 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-size: 15.5px; /* تكبير الخط الأساسي للتطبيق */
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-button {
+button, select, input {
   font-family: inherit;
 }
 
