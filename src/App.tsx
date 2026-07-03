@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+// استيراد مكتبة معالجة ملفات الإكسيل ديناميكياً
+import * as XLSX from 'xlsx';
 
 // ==========================================
 // 1. نظام الترجمة (i18n)
@@ -10,12 +12,12 @@ const translations: Record<string, any> = {
     themeLight: "الوضع المضيء",
     themeDark: "الوضع الداكن",
     online: "متصل",
-    importDb: "استيراد قاعدة بيانات",
+    importDb: "استيراد قاعدة بيانات (Excel/CSV)",
     globalSearch: "البحث الشامل",
     importFirst: "برجاء استيراد قاعدة بيانات أولاً للتمكن من البحث",
     savedDbs: "قواعد البيانات المستوردة والمحفوظة",
     noDbs: "لا توجد قواعد بيانات حالياً",
-    noDbsSub: "اضغط على (استيراد قاعدة بيانات) واقرا ملفاتك الحقيقية للبدء في استكشافها.",
+    noDbsSub: "اضغط على زر الاستيراد واختر ملف Excel أو CSV حقيقي ليتم قراءته واستخراج شيتاته فوراً.",
     tables: "شيتات / جداول",
     rows: "صفوف",
     searchPlaceholder: "اكتب كلمة أو أكثر للبحث وتفريغ السجل بالكامل...",
@@ -32,12 +34,12 @@ const translations: Record<string, any> = {
     langToggle: "العربية",
     themeLight: "Light Mode",
     themeDark: "Dark Mode",
-    importDb: "Import Database",
+    importDb: "Import Database (Excel/CSV)",
     globalSearch: "Global Search",
     importFirst: "Please import a database first to search",
     savedDbs: "Imported Databases",
     noDbs: "No Databases",
-    noDbsSub: "Click (Import Database) to start exploring.",
+    noDbsSub: "Click Import to read your Excel or CSV files and extract sheets dynamically.",
     tables: "sheets / tables",
     rows: "rows",
     searchPlaceholder: "Type to search and extract full record fields...",
@@ -89,7 +91,7 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // معالجة وقراءة الملف ديناميكياً 100% دون أي حقن لبيانات خارجية ثابتة
+  // معالجة قراءة ملف الإكسيل الحقيقي وفك بياناته ثنائياً لمنع التشوه
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -98,96 +100,65 @@ export default function App() {
     const cleanName = file.name.replace(/\.[^/.]+$/, "");
     
     const reader = new FileReader();
+    
+    // القراءة كـ ArrayBuffer لدعم ملفات الكنترول والعهد الكبيرة وملفات xlsx الثنائية
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      let parsedSheets: TableStructure[] = [];
-
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      
       try {
-        // محاولة قراءة الملف كـ JSON حقيقي إذا كان مصدراً من قاعدة بيانات
-        const json = JSON.parse(text);
-        if (Array.isArray(json)) {
-          const cols = json.length > 0 ? Object.keys(json[0]) : [];
-          parsedSheets.push({ tableName: cleanName, columns: cols, rawData: json });
-        } else {
-          Object.keys(json).forEach(sheetName => {
-            if (Array.isArray(json[sheetName])) {
-              const cols = json[sheetName].length > 0 ? Object.keys(json[sheetName][0]) : [];
-              parsedSheets.push({ tableName: sheetName, columns: cols, rawData: json[sheetName] });
-            }
-          });
-        }
-      } catch {
-        // إذا كان الملف CSV أو إكسيل نصي، يتم تفكيك الأسطر ديناميكياً واستخراج الأعمدة الحقيقية منه
-        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-        if (lines.length > 0) {
-          const columns = lines[0].split(',').map(c => c.replace(/"/g, '').trim());
-          const rawData = lines.slice(1).map(line => {
-            const values = line.split(',').map(v => v.replace(/"/g, '').trim());
-            const row: Record<string, string> = {};
-            columns.forEach((col, index) => {
-              row[col] = values[index] || '—';
-            });
-            return row;
-          });
+        const workbook = XLSX.read(data, { type: 'array' });
+        let parsedSheets: TableStructure[] = [];
+
+        // المرور على جميع الشيتات المتواجدة داخل ملف الإكسيل حركياً
+        workbook.SheetNames.forEach(sheetName => {
+          const worksheet = workbook.Sheets[sheetName];
+          // تحويل الشيت إلى مصفوفة كائنات جيhandling الصفوف والأعمدة
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '—' });
           
-          parsedSheets.push({
-            tableName: cleanName,
-            columns: columns,
-            rawData: rawData
-          });
+          if (jsonData.length > 0) {
+            // استخراج أسماء الأعمدة الفعلية من الشيت المفتوح حالياً
+            const columns = Object.keys(jsonData[0]);
+            
+            // تحويل القيم إلى نصوص نظيفة
+            const cleanedData = jsonData.map(row => {
+              const newRow: Record<string, string> = {};
+              columns.forEach(col => {
+                newRow[col] = String(row[col]).trim();
+              });
+              return newRow;
+            });
+
+            parsedSheets.push({
+              tableName: sheetName,
+              columns: columns,
+              rawData: cleanedData
+            });
+          }
+        });
+
+        if (parsedSheets.length === 0) {
+          alert("الملف المرفوع فارغ أو لا يحتوي على شيتات صالحة للقراءة.");
+          return;
         }
+
+        const newDb: DatabaseItem = {
+          id: 'db-' + Date.now(),
+          name: file.name,
+          cleanName: cleanName,
+          sizeFormatted: formatBytes(file.size),
+          tables: parsedSheets
+        };
+
+        setDatabases(prev => [...prev, newDb]);
+        setSelectedDb(newDb.id);
+
+      } catch (error) {
+        console.error("خطأ أثناء تحليل ملف الإكسيل:", error);
+        alert("فشل في تحليل ملف الإكسيل، تأكد من سلامة هيكل الملف الحقيقي.");
       }
-
-      // في حال فشل التحليل الهيكلي التلقائي للملف النصي، ننشئ هيكل مرن بناءً على اسم الملف الحقيقي لمنع تداخل العهدة
-      if (parsedSheets.length === 0) {
-        if (file.name.includes('مؤشرات') || file.name.includes('كنترول') || file.name.includes('Student')) {
-          parsedSheets = [
-            {
-              tableName: 'مؤشرات_الأداء_الأكاديمي',
-              columns: ['كود_المادة', 'اسم_المادة', 'الدرجة_القصوى', 'نسبة_النجاح', 'حالة_الكنترول'],
-              rawData: [
-                { 'كود_المادة': 'CS501', 'اسم_المادة': 'الحوكمة الرقمية والتحول المؤسسي', 'الدرجة_القصوى': '100', 'نسبة_النجاح': '92%', 'حالة_الكنترول': 'مغلق تلقائياً' },
-                { 'كود_المادة': 'IS602', 'اسم_المادة': 'تحليل نظم معلومات الدراسات العليا', 'الدرجة_القصوى': '100', 'نسبة_النجاح': '88%', 'حالة_الكنترول': 'قيد المراجعة' }
-              ]
-            },
-            {
-              tableName: 'سجل_أعمال_السنة_والرصد',
-              columns: ['الرقم_الأكاديمي', 'اسم_الطالب', 'الامتحان_التحريري', 'الامتحان_الشفهي', 'النتيجة_النهائية'],
-              rawData: [
-                { 'الرقم_الأكاديمي': '202601', 'اسم_الطالب': 'أحمد محمود كريم', 'الامتحان_التحريري': '85', 'الامتحان_الشفهي': '14', 'النتيجة_النهائية': 'ناجح' }
-              ]
-            }
-          ];
-        } else {
-          // ملفات العهد والمخازن التخصصية
-          parsedSheets = [
-            {
-              tableName: 'الموقف التنفيذي للكلية ج 3',
-              columns: ['الوحدة', 'إسم الصنف', 'نوع الصنف', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف', 'المتبقى حالياً'],
-              rawData: [{ 'الوحدة': 'الكلية', 'إسم الصنف': 'جهاز بنش دامبلز متحرك', 'نوع الصنف': '—', 'الموجود بالعهدة طبقاً لآخر مراجعة لحساب الصنف': '1', 'المتبقى حالياً': '0' }]
-            },
-            {
-              tableName: 'أرشيف_الحركة_العامة',
-              columns: ['نوع المستند', 'تاريخ المستند', 'الكمية في المستند', 'المستند من'],
-              rawData: [{ 'نوع المستند': 'نقل عهدة', 'تاريخ المستند': '2026-05-12', 'الكمية في المستند': '1', 'المستند من': 'كلية دجو' }]
-            }
-          ];
-        }
-      }
-
-      const newDb: DatabaseItem = {
-        id: 'db-' + Date.now(),
-        name: file.name,
-        cleanName: cleanName,
-        sizeFormatted: formatBytes(file.size),
-        tables: parsedSheets
-      };
-
-      setDatabases([...databases, newDb]);
-      setSelectedDb(newDb.id);
     };
 
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -235,7 +206,7 @@ export default function App() {
         tbl.rawData.forEach((row, rowIndex) => {
           const rowString = Object.values(row).join(' ').toLowerCase();
           
-          if (rowString.includes(searchQuery.toLowerCase()) || searchQuery === '*') {
+          if (rowString.includes(searchQuery.toLowerCase())) {
             const fields = tbl.columns.map(col => ({
               label: col,
               value: row[col] || '—'
@@ -243,7 +214,7 @@ export default function App() {
 
             if (selectedColumn !== 'all') {
               const matchedColumnValue = row[selectedColumn] || '';
-              if (!matchedColumnValue.toLowerCase().includes(searchQuery.toLowerCase()) && searchQuery !== '*') {
+              if (!matchedColumnValue.toLowerCase().includes(searchQuery.toLowerCase())) {
                 return;
               }
             }
@@ -268,7 +239,8 @@ export default function App() {
       minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.3s ease'
     }}>
       
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".csv,.xls,.xlsx,.json,.sql,.db" />
+      {/* تحديد التنسيقات المدعومة لتشمل إكسيل الحقيقي */}
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx,.xls,.csv" />
       
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${isDarkMode ? '#1e293b' : '#cbd5e1'}`, paddingBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -356,7 +328,7 @@ export default function App() {
                       {dynamicTables.map((tbl, i) => <option key={i} value={tbl}>{tbl}</option>)}
                     </select>
 
-                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
+                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
                       <option value="all">{t.allColumns}</option>
                       {dynamicColumns.map((col, i) => <option key={i} value={col}>{col}</option>)}
                     </select>
