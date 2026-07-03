@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-// استيراد مكتبة معالجة ملفات الإكسيل ديناميكياً
-import * as XLSX from 'xlsx';
+// استيراد آمن ومحدد لتفادي مشاكل البناء والتوافق مع بيئة Electron
+import { read, utils } from 'xlsx';
 
 // ==========================================
 // 1. نظام الترجمة (i18n)
@@ -91,7 +91,7 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // معالجة قراءة ملف الإكسيل الحقيقي وفك بياناته ثنائياً لمنع التشوه
+  // معالجة قراءة الملف ثنائياً بدقة لمنع تشوه النصوص والرموز الغريبة
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -101,25 +101,20 @@ export default function App() {
     
     const reader = new FileReader();
     
-    // القراءة كـ ArrayBuffer لدعم ملفات الكنترول والعهد الكبيرة وملفات xlsx الثنائية
     reader.onload = (e) => {
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
       
       try {
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = read(data, { type: 'array' });
         let parsedSheets: TableStructure[] = [];
 
-        // المرور على جميع الشيتات المتواجدة داخل ملف الإكسيل حركياً
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
-          // تحويل الشيت إلى مصفوفة كائنات جيhandling الصفوف والأعمدة
-          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '—' });
+          const jsonData = utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '—' });
           
           if (jsonData.length > 0) {
-            // استخراج أسماء الأعمدة الفعلية من الشيت المفتوح حالياً
             const columns = Object.keys(jsonData[0]);
             
-            // تحويل القيم إلى نصوص نظيفة
             const cleanedData = jsonData.map(row => {
               const newRow: Record<string, string> = {};
               columns.forEach(col => {
@@ -239,7 +234,6 @@ export default function App() {
       minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.3s ease'
     }}>
       
-      {/* تحديد التنسيقات المدعومة لتشمل إكسيل الحقيقي */}
       <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx,.xls,.csv" />
       
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${isDarkMode ? '#1e293b' : '#cbd5e1'}`, paddingBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
@@ -328,7 +322,7 @@ export default function App() {
                       {dynamicTables.map((tbl, i) => <option key={i} value={tbl}>{tbl}</option>)}
                     </select>
 
-                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
+                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
                       <option value="all">{t.allColumns}</option>
                       {dynamicColumns.map((col, i) => <option key={i} value={col}>{col}</option>)}
                     </select>
