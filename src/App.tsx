@@ -68,11 +68,11 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
               )}
             </button>
 
-            {/* زر الإغلاق (X) */}
+            {/* زر الإغلاق المصحح (X) */}
             <button className="fullscreen-toggle-btn" onClick={onClose} type="button">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="12"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
           </div>
@@ -135,9 +135,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                 اكتب كلمة البحث للبدء...
               </div>
             ) : (
-              // هنا يتم وضع خريطة عرض النتائج (جداول البيانات والـ Tags الخاصة بك)
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* مثال توضيحي لشكل هيكل نتيجة مطابقة */}
                 <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span className="db-type-tag">قاعدة_بيانات_كاملة_لمؤشرات_الكنترول_ماجستير_تسويق</span>
