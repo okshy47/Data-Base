@@ -1,250 +1,175 @@
-import { useEffect, useState } from 'react';
-import {
-  listImportedDatabases,
-  requestPersistentStorage,
-  estimateStorageUsage,
-  deleteImportedDatabase,
-  type ImportedDatabase,
-} from './lib/db';
-import { translations, getLanguage, setLanguage } from './lib/i18n'; // استيراد ملف اللغات
-import ImportDialog from './ImportDialog';
-import SearchScreen from './SearchScreen';
-import DatabaseDetail from './DatabaseDetail';
-import InstallPrompt from './InstallPrompt';
-import './App.css';
+import React, { useState } from 'react';
 
-export default function App() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isPersistent, setIsPersistent] = useState<boolean | null>(null);
-  const [storageInfo, setStorageInfo] = useState<{ usageMB: number; quotaMB: number } | null>(null);
-  const [databases, setDatabases] = useState<ImportedDatabase[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [detailDb, setDetailDb] = useState<ImportedDatabase | null>(null);
-const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'dark');
-  
-  // تأمين جلب اللغة الابتدائية بشكل كامل لمنع انهيار الرندرة
-  const [lang, setLangState] = useState(() => {
-    try {
-      return getLanguage() || 'ar';
-    } catch (e) {
-      return 'ar';
-    }
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('app-theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    const currentLang = lang || 'ar';
-    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = currentLang;
-    try {
-      setLanguage(currentLang);
-    } catch (e) {
-      console.error("Failed to save language:", e);
-    }
-  }, [lang]);
-
-  // حماية كائن الترجمات من الـ undefined
-const t = translations && lang && translations[lang] ? translations[lang] : (translations?.ar || {});  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  const toggleLang = () => setLangState((prev) => (prev === 'ar' ? 'en' : 'ar'));
-
-  useEffect(() => {
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
-
-  useEffect(() => {
-    refreshAll();
-  }, []);
-
-  async function refreshAll() {
-    setLoading(true);
-    try {
-      const [dbs, storage, persistent] = await Promise.all([
-        listImportedDatabases(),
-        estimateStorageUsage(),
-        navigator.storage?.persisted ? navigator.storage.persisted() : Promise.resolve(null),
-      ]);
-      setDatabases(dbs);
-      setStorageInfo(storage);
-      setIsPersistent(persistent);
-    } catch (error) {
-      console.error("Error refreshing database info:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleEnablePersistence() {
-    const granted = await requestPersistentStorage();
-    setIsPersistent(granted);
-  }
-
-  async function handleDelete(id: number | undefined) {
-    if (!id) return;
-    if (!confirm(t.deleteConfirm)) return;
-    await deleteImportedDatabase(id);
-    await refreshAll();
-  }
-
-  return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <ellipse cx="12" cy="5" rx="8" ry="3" />
-              <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5" />
-              <path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" />
-            </svg>
-          </span>
-          <div>
-            <h1>{t.title}</h1>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* زر تبديل اللغة الجديد */}
-          <button className="btn btn-ghost" onClick={toggleLang} style={{ padding: '6px 12px', fontSize: '14px' }}>
-            {t.langToggle}
-          </button>
-
-          <button 
-            className="icon-btn" 
-            onClick={toggleTheme} 
-            title={theme === 'dark' ? t.themeLight : t.themeDark}
-            style={{ padding: '8px', borderRadius: '50%', display: 'grid', placeItems: 'center' }}
-          >
-            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-          </button>
-
-          <div className={`status-pill ${isOnline ? 'status-online' : 'status-offline'}`}>
-            <span className="status-dot" />
-            {isOnline ? t.online : t.offline}
-          </div>
-        </div>
-      </header>
-
-      <main className="app-main">
-        <section className="panel panel-actions">
-          <button className="btn btn-primary" onClick={() => setIsImportOpen(true)}>
-            <PlusIcon />
-            {t.importDb}
-          </button>
-          <button
-            className="btn btn-secondary"
-            disabled={databases.length === 0}
-            title={databases.length === 0 ? t.importFirst : undefined}
-            onClick={() => setIsSearchOpen(true)}
-          >
-            <SearchIcon />
-            {t.globalSearch}
-          </button>
-          {databases.length === 0 && (
-            <span className="coming-soon-note">{t.importFirst}</span>
-          )}
-        </section>
-
-        <section className="panel">
-          <div className="panel-title-row">
-            <h2>{t.savedDbs}</h2>
-            {databases.length > 0 && <span className="count-badge">{databases.length}</span>}
-          </div>
-
-          {loading ? (
-            <div className="empty-state">
-              <p>{t.loading}</p>
-            </div>
-          ) : databases.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.4">
-                  <ellipse cx="12" cy="5" rx="8" ry="3" />
-                  <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5" />
-                </svg>
-              </div>
-              <p className="empty-title">{t.noDbs}</p>
-              <p className="empty-sub">{t.noDbsSub}</p>
-            </div>
-          ) : (
-            <ul className="db-list">
-              {databases.map((db) => (
-                <li key={db.id} className="db-card" onClick={() => setDetailDb(db)}>
-                  <div className="db-card-main">
-                    <span className="db-type-tag">{db.sourceType.toUpperCase()}</span>
-                    <div>
-                      <p className="db-name">{db.name}</p>
-                      <p className="db-meta">
-                        {db.tableNames.length} {t.tables} · {db.totalRows.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')} {t.rows}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="db-card-end">
-                    <p className="db-date">{new Date(db.importedAt).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US')}</p>
-                    <button
-                      className="icon-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(db.id);
-                      }}
-                      aria-label="Delete"
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="panel panel-storage">
-          <h2>{t.storageStatus}</h2>
-          <div className="storage-row">
-            <span>{t.persistentStorage}</span>
-            {isPersistent === null ? (
-              <span className="tag tag-neutral">{t.storageSupported}</span>
-            ) : isPersistent ? (
-              <span className="tag tag-good">{t.storageEnabled}</span>
-            ) : (
-              <button className="btn btn-ghost" onClick={handleEnablePersistence}>
-                {t.enableStorage}
-              </button>
-            )}
-          </div>
-          {storageInfo && (
-            <div className="storage-row">
-              <span>{t.usedSpace}</span>
-              <span className="tag tag-neutral" dir="ltr">
-                {storageInfo.usageMB.toFixed(1)} MB / {storageInfo.quotaMB.toFixed(0)} MB
-              </span>
-            </div>
-          )}
-        </section>
-      </main>
-
-      {isImportOpen && <ImportDialog onClose={() => setIsImportOpen(false)} onImported={refreshAll} />}
-      {isSearchOpen && <SearchScreen onClose={() => setIsSearchOpen(false)} currentLang={lang} />}
-      {detailDb && <DatabaseDetail database={detailDb} onClose={() => setDetailDb(null)} />}
-    </div>
-  );
+interface GlobalSearchModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  // أضف أي Props إضافية تستخدمها لربط البيانات هنا إذا لزم الأمر
 }
 
-// الأيقونات والدوال المساعدة تظل كما هي بالأسفل...
-function PlusIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>; }
-// (بقية كود الأيقونات مستقر تماماً)
-function SunIcon() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>; }
-function MoonIcon() { return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>; }
-function SearchIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>; }
-function TrashIcon() { return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>; }
+export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, onClose }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDb, setSelectedDb] = useState('all');
+  const [selectedTable, setSelectedTable] = useState('all');
+  const [selectedColumn, setSelectedColumn] = useState('all');
+  
+  // الـ State الجديد المسؤول عن تكبير وملء الشاشة
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  if (!isOpen) return null;
+
+  // ترجمة النصوص المساعدة لواجهة التحكم
+  const t = {
+    globalSearch: "البحث الشامل",
+    placeholder: "ابحث في جميع قواعد البيانات والجداول...",
+    allDbs: "جميع قواعد البيانات",
+    allTables: "جميع الجداول",
+    allColumns: "جميع الأعمدة",
+    fullscreenTitle: "ملء الشاشة",
+    exitFullscreenTitle: "تصغير الشاشة"
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      {/* ربط كلاس التكبير الديناميكي بناءً على حالة الـ State */}
+      <div 
+        className={`modal ${isMaximized ? 'fullscreen' : ''}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
+        
+        {/* ---------- شريط التحكم العلوي (العنوان + أزرار الحجم والإغلاق) ---------- */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          marginBottom: '12px',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '12px'
+        }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>{t.globalSearch}</h2>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* زر ملء الشاشة والتصغير الديناميكي الجديد */}
+            <button 
+              className="fullscreen-toggle-btn" 
+              onClick={() => setIsMaximized(!isMaximized)}
+              title={isMaximized ? t.exitFullscreenTitle : t.fullscreenTitle}
+              type="button"
+            >
+              {isMaximized ? (
+                /* أيقونة التصغير (Exit Fullscreen) */
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 14h6v6M20 10h-6V4M14 10l6-6M10 14l-6 6"/>
+                </svg>
+              ) : (
+                /* أيقونة التكبير الكامل (Enter Fullscreen) */
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>
+                </svg>
+              )}
+            </button>
+
+            {/* زر الإغلاق (X) */}
+            <button className="fullscreen-toggle-btn" onClick={onClose} type="button">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* ---------- محتوى النافذة الداخلي (Modal Body) القابل للتمرير بمرونة ---------- */}
+        <div className="modal-body">
+          
+          {/* حقل الإدخال الرئيسي للبحث */}
+          <div style={{ marginBottom: '16px', position: 'relative' }}>
+            <input
+              type="text"
+              className="text-input search-input"
+              placeholder={t.placeholder}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          {/* فلاتر التصفية الفرعية */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
+            gap: '10px', 
+            marginBottom: '16px' 
+          }}>
+            <select 
+              className="text-input" 
+              value={selectedDb} 
+              onChange={(e) => setSelectedDb(e.target.value)}
+              style={{ fontSize: '13.5px', padding: '8px 12px' }}
+            >
+              <option value="all">{t.allDbs}</option>
+            </select>
+
+            <select 
+              className="text-input" 
+              value={selectedTable} 
+              onChange={(e) => setSelectedTable(e.target.value)}
+              style={{ fontSize: '13.5px', padding: '8px 12px' }}
+            >
+              <option value="all">{t.allTables}</option>
+            </select>
+
+            <select 
+              className="text-input" 
+              value={selectedColumn} 
+              onChange={(e) => setSelectedColumn(e.target.value)}
+              style={{ fontSize: '13.5px', padding: '8px 12px' }}
+            >
+              <option value="all">{t.allColumns}</option>
+            </select>
+          </div>
+
+          {/* ---------- منطقة عرض نتائج البحث والبيانات المطابقة ---------- */}
+          <div style={{ marginTop: '12px' }}>
+            {searchQuery === '' ? (
+              <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-faint)' }}>
+                اكتب كلمة البحث للبدء...
+              </div>
+            ) : (
+              // هنا يتم وضع خريطة عرض النتائج (جداول البيانات والـ Tags الخاصة بك)
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* مثال توضيحي لشكل هيكل نتيجة مطابقة */}
+                <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span className="db-type-tag">قاعدة_بيانات_كاملة_لمؤشرات_الكنترول_ماجستير_تسويق</span>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-dim)' }}>Students</span>
+                  </div>
+                  
+                  {/* حاوية جدول البيانات المنسق */}
+                  <div className="data-table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Student_ID</th>
+                          <th>Student_Name</th>
+                          <th>Program_Name</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ fontFamily: 'var(--font-mono)' }}>MKT094</td>
+                          <td>حمدي الشرقاوي</td>
+                          <td>ماجستير تسويق</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
