@@ -75,14 +75,14 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>بحث شامل</h2>
+          <h2>بحث شامل في البيانات</h2>
           <button className="icon-btn" onClick={onClose} aria-label="إغلاق">
             ✕
           </button>
         </div>
 
         <div className="modal-body">
-          <div className="search-input-row">
+          <div className="search-input-row" style={{ position: 'relative' }}>
             <SearchGlyph />
             <input
               autoFocus
@@ -90,7 +90,31 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
               placeholder="اكتب كلمة أو أكثر للبحث في كل قواعد بياناتك..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              style={{ paddingLeft: query ? '40px' : '12px' }}
             />
+            {query && (
+              <button 
+                className="clear-search-btn"
+                onClick={() => setQuery('')}
+                title="مسح البحث"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  fontSize: '16px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  padding: '4px'
+                }}
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <div className="filters-row">
@@ -147,34 +171,39 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
 
           {!debouncedQuery.trim() && (
             <div className="empty-state">
-              <p className="empty-sub">اكتب كلمة بحث للبدء. يمكنك تضييق النطاق باستخدام الفلاتر أعلاه.</p>
+              <p className="empty-sub">اكتب كلمة بحث للبدء. يمكنك تضييق نطاق باستخدام الفلاتر أعلاه.</p>
             </div>
           )}
 
           {debouncedQuery.trim() && isSearching && (
             <div className="status-box">
               <div className="spinner" />
-              <p>جارِ البحث...</p>
+              <p>جارِ البحث والتحقق من الجداول...</p>
             </div>
           )}
 
           {debouncedQuery.trim() && !isSearching && items.length === 0 && (
             <div className="empty-state">
-              <p className="empty-title">لا توجد نتائج</p>
-              <p className="empty-sub">جرّب كلمات أقل أو تحقق من الفلاتر المختارة.</p>
+              <p className="empty-title">لا توجد نتائج مطابقة</p>
+              <p className="empty-sub">جرّب كلمات أقل أو تحقق من اختيار الأعمدة والفلاتر.</p>
             </div>
           )}
 
           {debouncedQuery.trim() && !isSearching && items.length > 0 && (
             <>
               <p className="results-summary">
-                {totalMatches.toLocaleString('ar-EG')} نتيجة
-                {truncated && ' (تم البحث في جزء من البيانات فقط لضخامتها)'}
+                {totalMatches.toLocaleString('ar-EG')} نتيجة مطابقة 
+                {truncated && ' (تم فحص جزء من البيانات الحالية فقط لضخامة حجم الملف)'}
               </p>
 
               <ul className="results-list">
                 {items.map((item) => (
-                  <ResultCard key={item.row.id} item={item} highlightColumn={column} query={debouncedQuery} />
+                  <ResultCard 
+                    key={item.row.id} 
+                    item={item} 
+                    highlightColumn={column} 
+                    query={debouncedQuery} 
+                  />
                 ))}
               </ul>
 
@@ -203,9 +232,35 @@ export default function SearchScreen({ onClose }: { onClose: () => void }) {
   );
 }
 
+// دالة مساعدة لتمييز الكلمة المبحوث عنها داخل النصوص المرجعة
+function HighlightedText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) return <>{text}</>;
+  
+  try {
+    // الهروب من الحروف الخاصة بالـ Regex
+    const escapedHighlight = highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedHighlight})`, 'gi'));
+    
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === highlight.toLowerCase() ? (
+            <mark key={i} className="text-highlight" style={{ backgroundColor: 'rgba(255, 213, 0, 0.3)', color: 'inherit', padding: '0 2px', borderRadius: '2px' }}>{part}</mark>
+          ) : (
+            part
+          )
+        )}
+      </>
+    );
+  } catch (e) {
+    return <>{text}</>;
+  }
+}
+
 function ResultCard({
   item,
   highlightColumn,
+  query,
 }: {
   item: SearchResultItem;
   highlightColumn: string | null;
@@ -222,7 +277,13 @@ function ResultCard({
         {entries.map(([col, val]) => (
           <div key={col} className={`result-field ${col === highlightColumn ? 'result-field-hl' : ''}`}>
             <span className="result-field-key">{col}</span>
-            <span className="result-field-val">{val === null || val === '' ? '—' : String(val)}</span>
+            <span className="result-field-val">
+              {val === null || val === '' ? (
+                '—'
+              ) : (
+                <HighlightedText text={String(val)} highlight={query} />
+              )}
+            </span>
           </div>
         ))}
       </div>
