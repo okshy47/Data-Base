@@ -22,24 +22,35 @@ export default function App() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [detailDb, setDetailDb] = useState<ImportedDatabase | null>(null);
+const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'dark');
+  
+  // تأمين جلب اللغة الابتدائية بشكل كامل لمنع انهيار الرندرة
+  const [lang, setLangState] = useState(() => {
+    try {
+      return getLanguage() || 'ar';
+    } catch (e) {
+      return 'ar';
+    }
+  });
 
-  const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'dark');
-  const [lang, setLangState] = useState(() => getLanguage()); // حالة اللغة الحالية
-
-  // تطبيق اللغة والاتجاه
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('app-theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-    setLanguage(lang);
+    const currentLang = lang || 'ar';
+    document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = currentLang;
+    try {
+      setLanguage(currentLang);
+    } catch (e) {
+      console.error("Failed to save language:", e);
+    }
   }, [lang]);
 
-  const t = translations[lang]; // اختصار للوصول للترجمات الحالية
-
+  // حماية كائن الترجمات من الـ undefined
+  const t = translations[lang] || translations['ar'];
   const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   const toggleLang = () => setLangState((prev) => (prev === 'ar' ? 'en' : 'ar'));
 
