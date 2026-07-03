@@ -61,7 +61,7 @@ export default function App() {
     setDatabases(dbs);
     setStorageInfo(storage);
     setIsPersistent(persistent);
-    loading && setLoading(false); // تعديل طفيف لضمان الأمان أثناء التحميل
+    loading && setLoading(false);
   }
 
   async function handleEnablePersistence() {
@@ -89,7 +89,7 @@ export default function App() {
           </span>
           <div>
             <h1>مستكشف قواعد البيانات</h1>
-            <p className="brand-sub">يعمل بالكامل على جهازك — بدون إنترنت</p>
+            {/* تم إزالة الجملة الفرعية بنجاح من هنا لتبسيط التصميم */}
           </div>
         </div>
 
@@ -262,7 +262,6 @@ function SearchIcon() {
   );
 }
 
-// أيقونة الشمس للوضع المضيء
 function SunIcon() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -272,7 +271,6 @@ function SunIcon() {
   );
 }
 
-// أيقونة القمر للوضع الداكن
 function MoonIcon() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
