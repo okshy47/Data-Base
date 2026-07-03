@@ -22,6 +22,20 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [detailDb, setDetailDb] = useState<ImportedDatabase | null>(null);
 
+  // إدارة الوضع الداكن والمضيء
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('app-theme') || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
@@ -47,7 +61,7 @@ export default function App() {
     setDatabases(dbs);
     setStorageInfo(storage);
     setIsPersistent(persistent);
-    setLoading(false);
+    loading && setLoading(false); // تعديل طفيف لضمان الأمان أثناء التحميل
   }
 
   async function handleEnablePersistence() {
@@ -79,9 +93,21 @@ export default function App() {
           </div>
         </div>
 
-        <div className={`status-pill ${isOnline ? 'status-online' : 'status-offline'}`}>
-          <span className="status-dot" />
-          {isOnline ? 'متصل' : 'غير متصل — يعمل بشكل طبيعي'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* زر التبديل بين الـ Dark والـ Light Mode */}
+          <button 
+            className="icon-btn" 
+            onClick={toggleTheme} 
+            title={theme === 'dark' ? "التحول للوضع المضيء" : "التحول للوضع الداكن"}
+            style={{ padding: '8px', borderRadius: '50%', display: 'grid', placeItems: 'center' }}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
+
+          <div className={`status-pill ${isOnline ? 'status-online' : 'status-offline'}`}>
+            <span className="status-dot" />
+            {isOnline ? 'متصل' : 'غير متصل — يعمل بشكل طبيعي'}
+          </div>
         </div>
       </header>
 
@@ -232,6 +258,25 @@ function SearchIcon() {
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+// أيقونة الشمس للوضع المضيء
+function SunIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  );
+}
+
+// أيقونة القمر للوضع الداكن
+function MoonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
     </svg>
   );
 }
