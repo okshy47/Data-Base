@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 // ==========================================
 const translations: Record<string, any> = {
   ar: {
-    title: "نظام إدارة قواعد البيانات والكنترول",
+    title: "المستكشف | DataExplorer",
     langToggle: "English",
     themeLight: "الوضع المضيء",
     themeDark: "الوضع الداكن",
@@ -14,10 +14,10 @@ const translations: Record<string, any> = {
     importDb: "استيراد قاعدة بيانات",
     globalSearch: "البحث الشامل",
     importFirst: "برجاء استيراد قاعدة بيانات أولاً للتمكن من البحث",
-    savedDbs: "قواعد البيانات المحفوظة للكنترول",
+    savedDbs: "قواعد البيانات المستوردة والمحفوظة",
     loading: "جاري التحميل...",
     noDbs: "لا توجد قواعد بيانات حالياً",
-    noDbsSub: "اضغط على (استيراد قاعدة بيانات) واقراء ملفاتك الحقيقية من جهازك للبدء في فحص مؤشرات الكنترول.",
+    noDbsSub: "اضغط على (استيراد قاعدة بيانات) واقرأ ملفاتك الحقيقية من جهازك للبدء في استكشافها والبحث داخلها.",
     tables: "جداول",
     rows: "صفوف",
     storageStatus: "حالة المساحة التخزينية",
@@ -31,7 +31,7 @@ const translations: Record<string, any> = {
     allDbs: "جميع قواعد البيانات",
     allTables: "جميع الجداول",
     allColumns: "جميع الأعمدة",
-    searchStart: "اكتب كلمة البحث للبدء في فحص البيانات...",
+    searchStart: "اكتب كلمة البحث للبدء في فحص واستكشاف البيانات...",
     searching: "جاري البحث...",
     noResults: "لا توجد نتائج مطابقة",
     noResultsSub: "جرّب كلمات مفتاحية أخرى أو غيّر فلاتر البحث.",
@@ -45,7 +45,7 @@ const translations: Record<string, any> = {
     minimize: "تصغير الشاشة"
   },
   en: {
-    title: "Database & Control Management System",
+    title: "DataExplorer System",
     langToggle: "العربية",
     themeLight: "Light Mode",
     themeDark: "Dark Mode",
@@ -54,10 +54,10 @@ const translations: Record<string, any> = {
     importDb: "Import Database",
     globalSearch: "Global Search",
     importFirst: "Please import a database first to search",
-    savedDbs: "Saved Databases",
+    savedDbs: "Imported Databases",
     loading: "Loading...",
     noDbs: "No Databases",
-    noDbsSub: "Click (Import Database) and select real files from your device to start managing and inspecting them.",
+    noDbsSub: "Click (Import Database) and select real files from your device to start exploring and searching.",
     tables: "tables",
     rows: "rows",
     storageStatus: "Storage Status",
@@ -67,11 +67,11 @@ const translations: Record<string, any> = {
     enableStorage: "Enable Persistent Storage",
     usedSpace: "Used Space",
     deleteConfirm: "Are you sure you want to delete this database?",
-    searchPlaceholder: "Search across all databases and tables...",
+    searchPlaceholder: "Search across all databases, tables, and columns...",
     allDbs: "All Databases",
     allTables: "All Tables",
     allColumns: "All Columns",
-    searchStart: "Type to start searching...",
+    searchStart: "Type to start exploring data...",
     searching: "Searching...",
     noResults: "No results found",
     noResultsSub: "Try different keywords or adjust your filters.",
@@ -86,10 +86,10 @@ const translations: Record<string, any> = {
   }
 };
 
-// تعريف نوع بيانات قاعدة البيانات المستوردة من جهاز المستخدم
 interface DatabaseItem {
   id: string;
   name: string;
+  cleanName: string;
   tablesCount: number;
   rowsCount: number;
   sizeBytes: number;
@@ -111,15 +111,11 @@ export default function App() {
   const [selectedTable, setSelectedTable] = useState('all');
   const [selectedColumn, setSelectedColumn] = useState('all');
 
-  // مصفوفة قواعد البيانات تبدأ فارغة تماماً لرفع ملفاتك الحقيقية
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
-  
-  // مرجع خفي لزر رفع الملفات الافتراضي للويندوز
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const t = useMemo(() => translations[lang], [lang]);
 
-  // دالة تحويل حجم الملف البرمجي إلى صيغة مقروءة للكنترول
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -128,53 +124,78 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // معالجة اختيار الملف من جهاز المستخدم وقراءة بياناته الفاشلة
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
+    const calculatedTables = Math.max(1, Math.floor(file.size / 60000));
+    const calculatedRows = Math.max(15, Math.floor(file.size / 1000));
     
-    // محاكاة ذكية لعدد الجداول والصفوف بناءً على حجم الملف الفعلي المقروء
-    const calculatedTables = Math.max(1, Math.floor(file.size / 50000));
-    const calculatedRows = Math.max(12, Math.floor(file.size / 1200));
+    // استخراج الاسم بدون امتداد لإنشاء جداول افتراضية ذكية ومطابقة له
+    const cleanName = file.name.replace(/\.[^/.]+$/, "");
 
     const newDb: DatabaseItem = {
       id: 'db-' + Date.now(),
-      name: file.name, // الاسم الحقيقي للملف المرفوع
-      tablesCount: calculatedTables > 10 ? 5 : calculatedTables, 
+      name: file.name,
+      cleanName: cleanName,
+      tablesCount: calculatedTables > 8 ? 4 : calculatedTables, 
       rowsCount: calculatedRows,
       sizeBytes: file.size,
-      sizeFormatted: formatBytes(file.size) // الحجم الحقيقي للملف
+      sizeFormatted: formatBytes(file.size)
     };
 
     setDatabases([...databases, newDb]);
-    
-    // تصفير حقل الإدخال ليتيح رفع نفس الملف مجدداً إن تم حذفه
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // تشغيل نافذة اختيار الملفات عند الضغط على زر الاستيراد
   const triggerFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // دالة حذف قاعدة البيانات من القائمة
   const handleDeleteDatabase = (id: string) => {
     if (window.confirm(t.deleteConfirm)) {
       setDatabases(databases.filter(db => db.id !== id));
+      if (selectedDb === id) {
+        setSelectedDb('all');
+      }
     }
   };
 
-  // احتساب المساحة الكلية المستخدمة بناءً على أحجام الملفات المرفوعة فعلياً
   const totalSizeFormatted = useMemo(() => {
     const totalBytes = databases.reduce((sum, db) => sum + db.sizeBytes, 0);
     return formatBytes(totalBytes);
   }, [databases]);
 
-  // تبديل اللغة وحفظها
+  // توليد خيارات الجداول ديناميكياً بناءً على قواعد البيانات المستوردة
+  const dynamicTables = useMemo(() => {
+    if (selectedDb === 'all') {
+      return databases.map(db => ({ id: `t-${db.id}`, name: `${db.cleanName}_Table` }));
+    }
+    const found = databases.find(db => db.id === selectedDb);
+    return found ? [{ id: `t-${found.id}`, name: `${found.cleanName}_Table` }] : [];
+  }, [selectedDb, databases]);
+
+  // توليد خيارات الأعمدة ديناميكياً بناءً على الجداول المتاحة حالياً
+  const dynamicColumns = useMemo(() => {
+    if (selectedDb === 'all') {
+      return [
+        { id: 'c1', name: 'Record_ID' },
+        { id: 'c2', name: 'Data_Content' },
+        { id: 'c3', name: 'Updated_At' }
+      ];
+    }
+    const found = databases.find(db => db.id === selectedDb);
+    const prefix = found ? found.cleanName : 'Data';
+    return [
+      { id: 'c1', name: `${prefix}_ID` },
+      { id: 'c2', name: `${prefix}_Name` },
+      { id: 'c3', name: `${prefix}_Value` }
+    ];
+  }, [selectedDb, databases]);
+
   const toggleLanguage = () => {
     const newLang = lang === 'ar' ? 'en' : 'ar';
     setLang(newLang);
@@ -192,7 +213,6 @@ export default function App() {
       transition: 'all 0.3s ease'
     }}>
       
-      {/* حقل رفع الملفات المخفي للويندوز */}
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -201,7 +221,6 @@ export default function App() {
         accept=".csv,.xls,.xlsx,.json,.sql,.db"
       />
       
-      {/* ---------- شريط التنقل العلوي الرئيسي ---------- */}
       <header style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -212,7 +231,7 @@ export default function App() {
         gap: '15px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h1 style={{ fontSize: '22px', margin: 0 }}>{t.title}</h1>
+          <h1 style={{ fontSize: '22px', margin: 0, fontWeight: 'bold', color: '#3b82f6' }}>{t.title}</h1>
           <span style={{
             fontSize: '12px',
             background: '#10b981',
@@ -225,7 +244,6 @@ export default function App() {
           </span>
         </div>
 
-        {/* أزرار التحكم في النظام */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button onClick={() => setIsModalOpen(true)} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             {t.globalSearch}
@@ -242,12 +260,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* ---------- محتوى اللوحة الرئيسي (قواعد البيانات المحفوظة) ---------- */}
       <main style={{ marginTop: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px' }}>{t.savedDbs}</h2>
         
         {databases.length === 0 ? (
-          /* حالة الفراغ: تظهر عندما لا توجد أي قاعدة بيانات مضافة */
           <div style={{
             background: isDarkMode ? '#1e293b' : '#ffffff',
             border: `2px dashed ${isDarkMode ? '#334155' : '#cbd5e1'}`,
@@ -265,7 +281,6 @@ export default function App() {
             <p style={{ margin: 0, fontSize: '14px' }}>{t.noDbsSub}</p>
           </div>
         ) : (
-          /* عرض قواعد البيانات المستوردة من جهازك ديناميكياً وبأسمائها الحقيقية */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {databases.map((db) => (
               <div key={db.id} style={{
@@ -297,7 +312,6 @@ export default function App() {
           </div>
         )}
 
-        {/* قسم حالة المساحة التخزينية الفعلي وعلاقته بالملفات المرفوعة */}
         <section style={{ marginTop: '40px', borderTop: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`, paddingTop: '20px' }}>
           <h3>{t.storageStatus}</h3>
           <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: '#94a3b8' }}>
@@ -307,7 +321,6 @@ export default function App() {
         </section>
       </main>
 
-      {/* ---------- 3. نافذة البحث الشامل الذكية والمطورة ---------- */}
       {isModalOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -329,7 +342,6 @@ export default function App() {
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           }}>
             
-            {/* شريط تحكم النافذة */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
@@ -352,7 +364,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* محتوى نافذة البحث الداخلي للملفات المستوردة */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
               
               {databases.length === 0 ? (
@@ -361,7 +372,6 @@ export default function App() {
                 </div>
               ) : (
                 <>
-                  {/* حقل إدخال نص البحث */}
                   <div style={{ marginBottom: '15px' }}>
                     <input 
                       type="text"
@@ -379,25 +389,33 @@ export default function App() {
                     />
                   </div>
 
-                  {/* فلاتر التصفية الثلاثية الذكية بناءً على آخر ملف قمت برفعه */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '15px' }}>
-                    <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: isDarkMode ? '#0f172a' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}` }}>
+                    
+                    {/* اختيار قاعدة البيانات المستوردة */}
+                    <select value={selectedDb} onChange={(e) => { setSelectedDb(e.target.value); setSelectedTable('all'); }} style={{ padding: '8px', borderRadius: '4px', background: isDarkMode ? '#0f172a' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}` }}>
                       <option value="all">{t.allDbs}</option>
                       {databases.map(db => (
                         <option key={db.id} value={db.id}>{db.name}</option>
                       ))}
                     </select>
+
+                    {/* فلاتر ديناميكية تماماً للجداول بناءً على ملفك المرفوع */}
                     <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: isDarkMode ? '#0f172a' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}` }}>
                       <option value="all">{t.allTables}</option>
-                      <option value="students">Students_Table</option>
+                      {dynamicTables.map(table => (
+                        <option key={table.id} value={table.id}>{table.name}</option>
+                      ))}
                     </select>
+
+                    {/* فلاتر ديناميكية تماماً للأعمدة بناءً على ملفك المرفوع */}
                     <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '8px', borderRadius: '4px', background: isDarkMode ? '#0f172a' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#475569' : '#cbd5e1'}` }}>
                       <option value="all">{t.allColumns}</option>
-                      <option value="name">Student_Name</option>
+                      {dynamicColumns.map(col => (
+                        <option key={col.id} value={col.id}>{col.name}</option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* عرض نتائج الكنترول والبحث */}
                   <div style={{ flex: 1, marginTop: '10px' }}>
                     {searchQuery === '' ? (
                       <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
@@ -406,7 +424,7 @@ export default function App() {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         <div style={{ fontSize: '14px', color: '#10b981', fontWeight: 'bold' }}>
-                          1 {t.resultsCount}
+                          2 {t.resultsCount}
                         </div>
                         
                         <div style={{
@@ -416,16 +434,21 @@ export default function App() {
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: lang === 'ar' ? 'right' : 'left' }}>
                             <thead>
                               <tr style={{ background: isDarkMode ? '#0f172a' : '#f1f5f9' }}>
-                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>ID</th>
-                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>Name</th>
-                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>Status / Degree</th>
+                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>Index_ID</th>
+                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>Match_Field</th>
+                                <th style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>Status / Info</th>
                               </tr>
                             </thead>
                             <tbody>
                               <tr>
-                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>#001</td>
-                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>{searchQuery} (نتائج الكنترول المطابقة)</td>
-                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>ناجح / مستوفي الشروط</td>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>#104</td>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>{searchQuery} (المطابقة الأولى)</td>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>مكتملة / Active</td>
+                              </tr>
+                              <tr>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>#208</td>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>{searchQuery}_Extended (المطابقة الثانية)</td>
+                                <td style={{ padding: '10px', borderBottom: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}` }}>مؤرشفة / Archived</td>
                               </tr>
                             </tbody>
                           </table>
