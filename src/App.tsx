@@ -72,6 +72,9 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  
+  // حقول البحث: واحد للكتابة الفورية السلسة والآخر للبحث الفعلي المؤجل لحل الثقل
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedDb, setSelectedDb] = useState('all');
@@ -83,6 +86,15 @@ export default function App() {
 
   const t = useMemo(() => translations[lang], [lang]);
 
+  // آلية التأخير الذكي (Debounce) لمنع تقل الكتابة أثناء الفلترة الضخمة
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300); // تأخير 300 ملي ثانية حتى ينتهي المستخدم من الضغط السريع
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -91,7 +103,6 @@ export default function App() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // معالجة قراءة الملف ثنائياً بدقة لمنع تشوه النصوص والرموز الغريبة
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -242,7 +253,7 @@ export default function App() {
           <span style={{ fontSize: '12px', background: '#10b981', color: '#fff', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{t.online}</span>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setIsModalOpen(true)} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
+          <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
           <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
           <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ padding: '10px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.langToggle}</button>
           <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{isDarkMode ? t.themeLight : t.themeDark}</button>
@@ -298,17 +309,33 @@ export default function App() {
                     <input 
                       type="text"
                       placeholder={t.searchPlaceholder}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
                       style={{
-                        width: '100%', padding: '14px 40px 14px 14px', borderRadius: '8px',
+                        width: '100%', 
+                        // تعديل الحواف ديناميكياً بناءً على اتجاه اللغة لمنع دخول الحروف تحت الأيقونة
+                        paddingTop: '14px',
+                        paddingBottom: '14px',
+                        paddingLeft: lang === 'ar' ? '14px' : '45px',
+                        paddingRight: lang === 'ar' ? '45px' : '14px',
+                        borderRadius: '8px',
                         border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}`,
                         background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000',
                         boxSizing: 'border-box', fontSize: '16px'
                       }}
                       autoFocus
                     />
-                    <span style={{ position: 'absolute', left: lang === 'ar' ? 'auto' : '15px', right: lang === 'ar' ? '15px' : 'auto', top: '35%', color: '#64748b' }}>🔍</span>
+                    <span style={{ 
+                      position: 'absolute', 
+                      // تحريك أيقونة العدسة ديناميكياً لليمين في العربي ولليسار في الإنجليزي
+                      left: lang === 'ar' ? 'auto' : '15px', 
+                      right: lang === 'ar' ? '15px' : 'auto', 
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#64748b',
+                      fontSize: '18px',
+                      pointerEvents: 'none'
+                    }}>🔍</span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
@@ -329,7 +356,7 @@ export default function App() {
                   </div>
 
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
-                    {searchQuery === '' ? (
+                    {searchInput === '' ? (
                       <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b', fontSize: '14px' }}>{t.searchStart}</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
