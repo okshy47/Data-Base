@@ -94,7 +94,6 @@ const translations: Record<string, any> = {
     minimize: "نافذة",
     delete: "حذف",
     enableHighlight: "تفعيل تمييز الكلمات المطابقة (Highlight)",
-    // إضافات الطباعة والتقارير
     printReport: "طباعة وحفظ التقرير (A4) 🖨️",
     printOptions: "خيارات تنسيق التقرير المطبوع:",
     showLogoOpt: "إظهار شعار واسم التطبيق في التقرير الرسمي",
@@ -104,7 +103,6 @@ const translations: Record<string, any> = {
     reportDate: "تاريخ توليد التقرير:",
     fileLabel: "📁 ملف:",
     sheetLabel: "📊 شيت:",
-    // كلمات نافذة الإعدادات
     settingsTitle: "لوحة التحكم ودليل التشغيل",
     tabAppearance: "⚙️ المظهر واللغة",
     tabGuide: "📖 دليل التشغيل والإرشادات",
@@ -207,7 +205,7 @@ export default function App() {
 
   // حالات خيارات الطباعة المتقدمة
   const [printShowLogo, setPrintShowLogo] = useState(true);
-  const [printKeepHighlight, setPrintKeepHighlight] = useState(false); // افتراضياً بدون تمييز ألوان للرسمية
+  const [printKeepHighlight, setPrintKeepHighlight] = useState(false);
   
   const [selectedDb, setSelectedDb] = useState('all');
   const [selectedTable, setSelectedTable] = useState('all');
@@ -219,6 +217,7 @@ export default function App() {
   const c = useMemo(() => themes[currentThemeKey] || themes.deepDark, [currentThemeKey]);
   const t = useMemo(() => translations[lang], [lang]);
 
+  // استخدام تكتيك الـ Debounce المحسن للبحث الداخلي
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(searchInput);
@@ -322,25 +321,43 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // ==========================================
+  // [تعديل المرحلة 2 المحسن]: حساب الشيتات المتاحة هندسياً بدون ضغط
+  // ==========================================
   const dynamicTables = useMemo(() => {
     if (selectedDb === 'all') {
-      return Array.from(new Set(databases.flatMap(db => db.tables.map(t => t.tableName))));
+      const sheetsSet = new Set<string>();
+      for (let i = 0; i < databases.length; i++) {
+        const db = databases[i];
+        for (let j = 0; j < db.tables.length; j++) {
+          sheetsSet.add(db.tables[j].tableName);
+        }
+      }
+      return Array.from(sheetsSet);
     }
     return databases.find(db => db.id === selectedDb)?.tables.map(t => t.tableName) || [];
   }, [selectedDb, databases]);
 
+  // ==========================================
+  // [تعديل المرحلة 2 المحسن]: تجميع الأعمدة المتاحة بمعادلات سريعة تفادياً للـ Lag
+  // ==========================================
   const dynamicColumns = useMemo(() => {
-    let currentColumns: string[] = [];
-    databases.forEach(db => {
-      if (selectedDb === 'all' || db.id === selectedDb) {
-        db.tables.forEach(tbl => {
-          if (selectedTable === 'all' || tbl.tableName === selectedTable) {
-            currentColumns = [...currentColumns, ...tbl.columns];
-          }
-        });
+    const columnsSet = new Set<string>();
+    
+    for (let i = 0; i < databases.length; i++) {
+      const db = databases[i];
+      if (selectedDb !== 'all' && db.id !== selectedDb) continue;
+      
+      for (let j = 0; j < db.tables.length; j++) {
+        const tbl = db.tables[j];
+        if (selectedTable !== 'all' && tbl.tableName !== selectedTable) continue;
+        
+        for (let k = 0; k < tbl.columns.length; k++) {
+          columnsSet.add(tbl.columns[k]);
+        }
       }
-    });
-    return Array.from(new Set(currentColumns));
+    }
+    return Array.from(columnsSet);
   }, [selectedDb, selectedTable, databases]);
 
   useEffect(() => {
@@ -388,7 +405,6 @@ export default function App() {
     return results;
   }, [searchQuery, databases, selectedDb, selectedTable, selectedColumn]);
 
-  // تجميع وتقسيم النتائج هندسياً للطباعة المنفصلة حسب الملف والشيت
   const structuredPrintData = useMemo(() => {
     const grouped: Record<string, Record<string, Array<Array<{ label: string; value: string }>>>> = {};
     
@@ -405,7 +421,6 @@ export default function App() {
     return grouped;
   }, [processedResults]);
 
-  // دالة إطلاق أمر الطباعة الفوري للجهاز
   const handlePrint = () => {
     window.print();
   };
@@ -421,7 +436,6 @@ export default function App() {
       direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.25s ease'
     }}>
       
-      {/* حقن ستايل CSS المتقدم للتحكم الكامل بصفحة الطباعة A4 وإخفاء عناصر التطبيق */}
       <style>{`
         @media print {
           body, html {
@@ -429,24 +443,20 @@ export default function App() {
             color: #000000 !important;
             direction: ${lang === 'ar' ? 'rtl' : 'ltr'} !important;
           }
-          /* إخفاء واجهة التطبيق بالكامل أثناء الطباعة */
           header, main, select, input, button, label, .screen-only, #highlightToggle {
             display: none !important;
           }
-          /* إظهار حاوية الطباعة فقط */
           .print-report-container {
             display: block !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-          /* إجبار المتصفح على عدم إخفاء الخلفيات أو التلوين المخصص للطباعة */
           .print-header-badge {
             background-color: #f1f5f9 !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
-          /* التحكم في ظهور أو اختفاء الـ Highlighter في النسخة المطبوعة ورقياً */
           .printable-mark {
             background: ${printKeepHighlight ? c.highlightBg : 'transparent'} !important;
             color: ${printKeepHighlight ? c.highlightText : 'inherit'} !important;
@@ -455,7 +465,6 @@ export default function App() {
             padding: ${printKeepHighlight ? '1px 4px' : '0'} !important;
             border-radius: ${printKeepHighlight ? '3px' : '0'} !important;
           }
-          /* تنسيقات الجداول الرسمية المطبوعة */
           .print-table {
             width: 100% !important;
             border-collapse: collapse !important;
@@ -487,7 +496,6 @@ export default function App() {
             margin: 20mm 15mm 20mm 15mm;
           }
         }
-        /* إخفاء حاوية التقرير في الشاشة العادية */
         .print-report-container {
           display: none;
         }
@@ -532,7 +540,7 @@ export default function App() {
         )}
       </main>
 
-      {/* شاشة الإعدادات ودليل الإرشادات */}
+      {/* لوحة الإعدادات */}
       {isSettingsOpen && (
         <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
           <div style={{ background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, width: '100%', maxWidth: '650px', height: '80vh', border: `1px solid ${c.border}`, display: 'flex', flexDirection: 'column' }}>
@@ -590,25 +598,21 @@ export default function App() {
                 <div style={{ lineHeight: '1.7', fontSize: '14px', textAlign: 'start' }}>
                   <h4 style={{ margin: '0 0 10px 0', color: c.accent, fontWeight: 'bold' }}>🚀 نظرة عامة على تطبيق المستكشف:</h4>
                   <p style={{ margin: '0 0 16px 0', color: c.textMuted }}>تم تصميم هذا النظام لتمكينك من استيراد قواعد البيانات والملفات الكبيرة والبحث داخل كافة شيتاتها وحقولها بسرعة البرق وبدون أي اتصال بالإنترنت.</p>
-
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>1️⃣ استيراد البيانات (Import):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
                     <li>يدعم التطبيق حالياً ملفات <b>Excel (.xlsx, .xls)</b> وملفات <b>CSV</b> المقسمة بفواصل.</li>
                   </ul>
-
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>2️⃣ محرك البحث الشامل (Global Search):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li><b>ميزة تمييز النص (Highlight):</b> ميزة تلوين الكلمة المطابقة تلقائياً بلون متوافق مع مظهر التطبيق لسهولة رصدها بالعين، ويمكن إيقافها في أي وقت من زر التحكم بجانب شريط البحث.</li>
+                    <li><b>ميزة تمييز النص (Highlight):</b> ميزة تلوين الكلمة المطابقة تلقائياً بلون متوافق مع مظهر التطبيق لسهولة رصدها بالعين.</li>
                   </ul>
-
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>3️⃣ شروط هامة لملفات Word & PDF (قيد التطوير):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
                     <li><b>ملفات PDF المدعومة:</b> يجب أن تكون ملفات PDF منسوخة أو مستخرجة من نصوص أصلية (Digital PDF).</li>
                   </ul>
-
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>4️⃣ الطباعة والتقارير الاحترافية (جديد):</h4>
                   <ul style={{ margin: '0 0 5px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li>يمكنك الآن توليد تقرير فوري ومنسق بحجم <b>A4</b> لنتائج البحث المصفاة. يتسنى لك إخفاء المظهر الملون للتمييز أو شعار التطبيق للحصول على مستندات رسمية وخالية من الشوائب ومعدة للطباعة الفورية.</li>
+                    <li>يمكنك الآن توليد تقرير فوري ومنسق بحجم <b>A4</b> لنتائج البحث المصفاة بحرية تامة وبمظهر رسمي.</li>
                   </ul>
                 </div>
               )}
@@ -619,7 +623,7 @@ export default function App() {
         </div>
       )}
 
-      {/* نافذة البحث الشامل والمحسن مع التمييز والطباعة */}
+      {/* نافذة البحث الشامل والمحسن */}
       {isModalOpen && (
         <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
           <div style={{
@@ -665,7 +669,7 @@ export default function App() {
                     <label htmlFor="highlightToggle" style={{ fontSize: '13px', color: c.textMuted, cursor: 'pointer', fontWeight: '600' }}>{t.enableHighlight}</label>
                   </div>
 
-                  {/* فلاتر الفرز المتقدمة */}
+                  {/* فلاتر الفرز المتقدمة السريعة */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
                     <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
                       <option value="all">{t.allDbs}</option>
@@ -683,7 +687,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* لوحة خيارات وتصدير التقارير (تظهر فقط عند وجود نتائج بحث) */}
+                  {/* لوحة التحكم بالتقارير والطباعة A4 */}
                   {searchQuery && processedResults.length > 0 && (
                     <div style={{ 
                       background: c.bg, border: `1px solid ${c.border}`, borderRadius: '8px', 
@@ -754,16 +758,11 @@ export default function App() {
         </div>
       )}
 
-      {/* ==========================================
-          5. حاوية التقرير المخصص للطباعة فقط (Print-Only Container)
-          ========================================== */}
+      {/* حاوية الطباعة والتقارير الرسمية المنفصلة */}
       <div className="print-report-container" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', fontFamily: 'system-ui, sans-serif' }}>
-        
-        {/* هيدر التقرير الرسمي المحتوي على الشعار الجاهز للتبديل مستقبلياً */}
         {printShowLogo && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #000', paddingBottom: '12px', marginBottom: '25px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* رسمة هندسية مؤقتة كحامل للشعار (Placeholder) */}
               <div style={{ width: '45px', height: '45px', borderRadius: '6px', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px', color: '#0f172a' }}>🕵️‍♂️</div>
               <div>
                 <h1 style={{ fontSize: '22px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{t.title}</h1>
@@ -777,7 +776,6 @@ export default function App() {
           </div>
         )}
 
-        {/* معلومات التقرير وعنوانه الأساسي */}
         <div className="print-header-badge" style={{ padding: '12px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #cbd5e1', textAlign: 'start' }}>
           <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0f172a', fontWeight: 'bold' }}>{t.reportTitle}</h2>
           <div style={{ fontSize: '13px', color: '#334155' }}>
@@ -785,7 +783,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* عرض وتفنيد البيانات مقسمة هندسياً بالملف والشيت على هيئة جداول رسمية */}
         {Object.entries(structuredPrintData).map(([dbName, tablesGroup]) => (
           <div key={dbName} className="print-file-section" style={{ textAlign: 'start' }}>
             <h3 style={{ fontSize: '16px', color: '#1e3a8a', borderBottom: '2px solid #cbd5e1', paddingBottom: '4px', marginBottom: '12px', fontWeight: 'bold' }}>
@@ -811,7 +808,6 @@ export default function App() {
                       <tr key={rIdx}>
                         {rowFields.map((field, fIdx) => (
                           <td key={fIdx}>
-                            {/* عرض نص الحقل في الجدول المطبوع مع التحكم بالـ Highlight */}
                             {renderHighlightedText(field.value, searchQuery, !printKeepHighlight)}
                           </td>
                         ))}
