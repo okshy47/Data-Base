@@ -1,55 +1,147 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-// استيراد آمن ومحدد لتفادي مشاكل البناء والتوافق مع بيئة Electron
 import { read, utils } from 'xlsx';
 
 // ==========================================
-// 1. نظام الترجمة (i18n)
+// 1. تعريف بالتات الألوان الاحترافية (Themes)
+// ==========================================
+interface ThemeColors {
+  bg: string;          // الخلفية الأساسية للتطبيق
+  cardBg: string;      // خلفية الكروت والجداول
+  text: string;        // لون النص الأساسي
+  textMuted: string;   // لون النصوص الفرعية والتوضيحية
+  border: string;      // لون الحدود والفواصل
+  accent: string;      // اللون المميز (الرئيسي للأزرار والرموز)
+  accentHover: string; // لون الزر عند تمرير الماوس
+  headerBg: string;    // خلفية ترويسة الكروت أو الهيدر
+}
+
+const themes: Record<string, ThemeColors> = {
+  // 1. الوضع الليلي الفاخر
+  deepDark: {
+    bg: '#090d1a',
+    cardBg: '#121829',
+    text: '#f8fafc',
+    textMuted: '#64748b',
+    border: '#1e293b',
+    accent: '#3b82f6',
+    accentHover: '#2563eb',
+    headerBg: 'rgba(59, 130, 246, 0.1)'
+  },
+  // 2. الوضع المضيء النقي
+  cleanLight: {
+    bg: '#f8fafc',
+    cardBg: '#ffffff',
+    text: '#0f172a',
+    textMuted: '#64748b',
+    border: '#cbd5e1',
+    accent: '#2563eb',
+    accentHover: '#1d4ed8',
+    headerBg: '#e0f2fe'
+  },
+  // 3. الوضع الزمردي المهني
+  emeraldPro: {
+    bg: '#0f1412',
+    cardBg: '#17201c',
+    text: '#ecfdf5',
+    textMuted: '#6b7280',
+    border: '#27352f',
+    accent: '#10b981',
+    accentHover: '#059669',
+    headerBg: 'rgba(16, 185, 129, 0.1)'
+  },
+  // 4. الوضع الفحمي الكلاسيكي
+  charcoalLuxury: {
+    bg: '#121212',
+    cardBg: '#1e1e1e',
+    text: '#e0e0e0',
+    textMuted: '#a0a0a0',
+    border: '#2e2e2e',
+    accent: '#f59e0b',
+    accentHover: '#d97706',
+    headerBg: 'rgba(245, 158, 11, 0.08)'
+  }
+};
+
+// ==========================================
+// 2. نظام التراجم واللغات
 // ==========================================
 const translations: Record<string, any> = {
   ar: {
-    title: "المستكشف | DataExplorer",
-    langToggle: "English",
-    themeLight: "الوضع المضيء",
-    themeDark: "الوضع الداكن",
-    online: "متصل",
-    importDb: "استيراد قاعدة بيانات (Excel/CSV)",
-    globalSearch: "البحث الشامل",
+    title: "المستكشف",
+    subTitle: "نظام ذكي للبحث في قواعد البيانات",
+    settings: "الإعدادات ⚙️",
+    importDb: "استيراد ملف (Excel/CSV)",
+    globalSearch: "البحث الشامل 🔍",
     importFirst: "برجاء استيراد قاعدة بيانات أولاً للتمكن من البحث",
-    savedDbs: "قواعد البيانات المستوردة والمحفوظة",
-    noDbs: "لا توجد قواعد بيانات حالياً",
-    noDbsSub: "اضغط على زر الاستيراد واختر ملف Excel أو CSV حقيقي ليتم قراءته واستخراج شيتاته فوراً.",
-    tables: "شيتات / جداول",
+    savedDbs: "قواعد البيانات النشطة",
+    noDbs: "لا توجد قواعد بيانات مستوردة",
+    noDbsSub: "اضغط على زر الاستيراد لاختيار ملفات البيانات وعرضها فوراً.",
+    tables: "شيتات",
     rows: "صفوف",
-    searchPlaceholder: "اكتب كلمة أو أكثر للبحث وتفريغ السجل بالكامل...",
-    allDbs: "جميع قواعد البيانات",
-    allTables: "كل الجداول (الشيتات)",
+    searchPlaceholder: "اكتب هنا للبحث الذكي السريع...",
+    allDbs: "جميع الملفات",
+    allTables: "كل الشيتات",
     allColumns: "كل الأعمدة",
-    searchStart: "اكتب كلمة بحث للبدء، سيقوم النظام بتفريغ كافة حقول وأعمدة البيان المطابق فوراً.",
-    resultsCount: "نتيجة مطابقة داخل الكروت الشاملة",
+    searchStart: "ابدأ الكتابة، سيقوم النظام بتصفية الحقول وعرض الصفوف المطابقة فوراً.",
+    resultsCount: "نتيجة مطابقة متوفرة في الكروت الكلية",
     maximize: "ملء الشاشة",
-    minimize: "تصغير الشاشة"
+    minimize: "نافذة",
+    delete: "حذف",
+    // كلمات نافذة الإعدادات
+    settingsTitle: "لوحة تحكم المظهر واللغة",
+    selectLang: "لغة الواجهة بالتطبيق",
+    selectTheme: "اختر بالتة الألوان الاحترافية",
+    theme1: "الوضع الليلي الفاخر (Deep Dark)",
+    theme2: "الوضع المضيء النقي (Clean Light)",
+    theme3: "الوضع الزمردي المهني (Emerald Pro)",
+    theme4: "الوضع الفحمي الكلاسيكي (Charcoal)",
+    fontSizeLabel: "حجم خط كروت البيانات",
+    fontSmall: "صغير",
+    fontMedium: "متوسط",
+    fontLarge: "كبير",
+    borderRadiusLabel: "نمط حواف العناصر والواجهات",
+    radiusSharp: "حادة (Sharp)",
+    radiusModern: "عصرية (Modern)",
+    radiusRounded: "دائرية (Rounded)",
+    saveClose: "حفظ وإغلاق"
   },
   en: {
-    title: "DataExplorer",
-    langToggle: "العربية",
-    themeLight: "Light Mode",
-    themeDark: "Dark Mode",
-    importDb: "Import Database (Excel/CSV)",
-    globalSearch: "Global Search",
+    title: "The Explorer",
+    subTitle: "Smart Database Search System",
+    settings: "Settings ⚙️",
+    importDb: "Import File (Excel/CSV)",
+    globalSearch: "Global Search 🔍",
     importFirst: "Please import a database first to search",
-    savedDbs: "Imported Databases",
-    noDbs: "No Databases",
-    noDbsSub: "Click Import to read your Excel or CSV files and extract sheets dynamically.",
-    tables: "sheets / tables",
+    savedDbs: "Active Databases",
+    noDbs: "No active databases loaded",
+    noDbsSub: "Click import to load your data files and display them.",
+    tables: "sheets",
     rows: "rows",
-    searchPlaceholder: "Type to search and extract full record fields...",
-    allDbs: "All Databases",
-    allTables: "All Tables (Sheets)",
+    searchPlaceholder: "Type here for instant smart search...",
+    allDbs: "All Files",
+    allTables: "All Sheets",
     allColumns: "All Columns",
-    searchStart: "Type to search, the system will dynamically extract all columns for matching rows.",
-    resultsCount: "results found",
+    searchStart: "Start typing, the system will instantly extract matching records.",
+    resultsCount: "matching records found",
     maximize: "Maximize",
-    minimize: "Restore"
+    minimize: "Restore",
+    delete: "Delete",
+    settingsTitle: "Appearance & Language Control",
+    selectLang: "Application Language",
+    selectTheme: "Choose Professional Theme",
+    theme1: "Deep Dark Blue",
+    theme2: "Clean Slate Light",
+    theme3: "Emerald Professional",
+    theme4: "Luxury Charcoal",
+    fontSizeLabel: "Data Cards Font Size",
+    fontSmall: "Small",
+    fontMedium: "Medium",
+    fontLarge: "Large",
+    borderRadiusLabel: "Component Border Style",
+    radiusSharp: "Sharp Edge",
+    radiusModern: "Modern Edge",
+    radiusRounded: "Fully Rounded",
+    saveClose: "Save & Close"
   }
 };
 
@@ -68,12 +160,17 @@ interface DatabaseItem {
 }
 
 export default function App() {
+  // حالات الإعدادات والتحكم بالـ UI
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [currentThemeKey, setCurrentThemeKey] = useState<string>('deepDark');
+  const [fontSize, setFontSize] = useState<'14px' | '16px' | '18px'>('16px');
+  const [borderRadius, setBorderRadius] = useState<'0px' | '8px' | '16px'>('8px');
+  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   
-  // حقول البحث: واحد للكتابة الفورية السلسة والآخر للبحث الفعلي المؤجل لحل الثقل
+  // حالات البحث
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -84,14 +181,15 @@ export default function App() {
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // جلب بالتة الألوان الفعالة والترجمة
+  const c = useMemo(() => themes[currentThemeKey] || themes.deepDark, [currentThemeKey]);
   const t = useMemo(() => translations[lang], [lang]);
 
-  // آلية التأخير الذكي (Debounce) لمنع تقل الكتابة أثناء الفلترة الضخمة
+  // آلية التأخير الذكي (Debounce) لمنع الثقل عند الكتابة الفورية
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(searchInput);
-    }, 300); // تأخير 300 ملي ثانية حتى ينتهي المستخدم من الضغط السريع
-
+    }, 250);
     return () => clearTimeout(handler);
   }, [searchInput]);
 
@@ -109,12 +207,10 @@ export default function App() {
 
     const file = files[0];
     const cleanName = file.name.replace(/\.[^/.]+$/, "");
-    
     const reader = new FileReader();
     
     reader.onload = (e) => {
       const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      
       try {
         const workbook = read(data, { type: 'array' });
         let parsedSheets: TableStructure[] = [];
@@ -125,7 +221,6 @@ export default function App() {
           
           if (jsonData.length > 0) {
             const columns = Object.keys(jsonData[0]);
-            
             const cleanedData = jsonData.map(row => {
               const newRow: Record<string, string> = {};
               columns.forEach(col => {
@@ -143,7 +238,7 @@ export default function App() {
         });
 
         if (parsedSheets.length === 0) {
-          alert("الملف المرفوع فارغ أو لا يحتوي على شيتات صالحة للقراءة.");
+          alert("الملف المرفوع فارغ أو غير صالح.");
           return;
         }
 
@@ -159,8 +254,7 @@ export default function App() {
         setSelectedDb(newDb.id);
 
       } catch (error) {
-        console.error("خطأ أثناء تحليل ملف الإكسيل:", error);
-        alert("فشل في تحليل ملف الإكسيل، تأكد من سلامة هيكل الملف الحقيقي.");
+        alert("فشل في تحليل ملف الإكسيل، تأكد من سلامة بنيته.");
       }
     };
 
@@ -200,19 +294,17 @@ export default function App() {
 
   const processedResults = useMemo(() => {
     if (!searchQuery) return [];
-
     let results: Array<{ id: string; dbName: string; tableName: string; fields: Array<{ label: string; value: string }> }> = [];
 
     databases.forEach(db => {
       if (selectedDb !== 'all' && db.id !== selectedDb) return;
-
       db.tables.forEach(tbl => {
         if (selectedTable !== 'all' && tbl.tableName !== selectedTable) return;
 
         tbl.rawData.forEach((row, rowIndex) => {
           const rowString = Object.values(row).join(' ').toLowerCase();
-          
           if (rowString.includes(searchQuery.toLowerCase())) {
+            
             const fields = tbl.columns.map(col => ({
               label: col,
               value: row[col] || '—'
@@ -220,9 +312,7 @@ export default function App() {
 
             if (selectedColumn !== 'all') {
               const matchedColumnValue = row[selectedColumn] || '';
-              if (!matchedColumnValue.toLowerCase().includes(searchQuery.toLowerCase())) {
-                return;
-              }
+              if (!matchedColumnValue.toLowerCase().includes(searchQuery.toLowerCase())) return;
             }
 
             results.push({
@@ -235,76 +325,139 @@ export default function App() {
         });
       });
     });
-
     return results;
   }, [searchQuery, databases, selectedDb, selectedTable, selectedColumn]);
 
   return (
     <div style={{
-      padding: '20px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#f8fafc' : '#0f172a',
-      minHeight: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.3s ease'
+      padding: '24px', background: c.bg, color: c.text, minHeight: '100vh',
+      fontFamily: 'Cairo, Tajawal, system-ui, -apple-system, sans-serif',
+      direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.25s ease'
     }}>
       
       <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx,.xls,.csv" />
       
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${isDarkMode ? '#1e293b' : '#cbd5e1'}`, paddingBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h1 style={{ fontSize: '22px', margin: 0, fontWeight: 'bold', color: '#3b82f6' }}>{t.title}</h1>
-          <span style={{ fontSize: '12px', background: '#10b981', color: '#fff', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{t.online}</span>
+      {/* هيدر التطبيق الاحترافي */}
+      <header style={{ 
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+        borderBottom: `1px solid ${c.border}`, paddingBottom: '20px', flexWrap: 'wrap', gap: '15px' 
+      }}>
+        <div>
+          <h1 style={{ fontSize: '26px', margin: 0, fontWeight: '800', color: c.accent }}>{t.title}</h1>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: c.textMuted }}>{t.subTitle}</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
-          <button onClick={() => fileInputRef.current?.click()} style={{ padding: '10px 14px', background: '#059669', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
-          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ padding: '10px 14px', background: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.langToggle}</button>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '10px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{isDarkMode ? t.themeLight : t.themeDark}</button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '12px 20px', background: c.accent, color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>{t.globalSearch}</button>
+          <button onClick={() => fileInputRef.current?.click()} style={{ padding: '12px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
+          <button onClick={() => setIsSettingsOpen(true)} style={{ padding: '12px 16px', background: c.cardBg, color: c.text, border: `1px solid ${c.border}`, borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.settings}</button>
         </div>
       </header>
 
-      <main style={{ marginTop: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '15px' }}>{t.savedDbs}</h2>
+      {/* لوحة قواعد البيانات المخزنة */}
+      <main style={{ marginTop: '35px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '18px', fontWeight: '700' }}>{t.savedDbs}</h2>
         {databases.length === 0 ? (
-          <div style={{ background: isDarkMode ? '#111936' : '#ffffff', border: `2px dashed ${isDarkMode ? '#1e293b' : '#cbd5e1'}`, borderRadius: '12px', padding: '40px 20px', textAlign: 'center', color: '#94a3b8' }}>
-            <h3 style={{ margin: '0 0 8px 0', color: isDarkMode ? '#f8fafc' : '#0f172a' }}>{t.noDbs}</h3>
+          <div style={{ background: c.cardBg, border: `2px dashed ${c.border}`, borderRadius: borderRadius, padding: '50px 20px', textAlign: 'center', color: c.textMuted }}>
+            <h3 style={{ margin: '0 0 8px 0', color: c.text }}>{t.noDbs}</h3>
             <p style={{ margin: 0, fontSize: '14px' }}>{t.noDbsSub}</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {databases.map((db) => (
-              <div key={db.id} style={{ background: isDarkMode ? '#111936' : '#ffffff', border: `1px solid ${isDarkMode ? '#1e293b' : '#e2e8f0'}`, borderRadius: '8px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={db.id} style={{ background: c.cardBg, border: `1px solid ${c.border}`, borderRadius: borderRadius, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '15px' }}>
                 <div>
-                  <h3 style={{ margin: '0 0 5px 0', color: '#3b82f6' }}>{db.name}</h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>{db.tables.length} {t.tables} | الحجم: {db.sizeFormatted}</p>
+                  <h3 style={{ margin: '0 0 6px 0', color: c.accent, fontSize: '16px', fontWeight: 'bold' }}>{db.name}</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: c.textMuted }}>{db.tables.length} {t.tables} | {db.sizeFormatted}</p>
                 </div>
-                <button onClick={() => setDatabases(databases.filter(d => d.id !== db.id))} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>حذف</button>
+                <button onClick={() => setDatabases(databases.filter(d => d.id !== db.id))} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', alignSelf: 'flex-end' }}>{t.delete}</button>
               </div>
             ))}
           </div>
         )}
       </main>
 
+      {/* ==========================================
+          3. شاشة الإعدادات المتقدمة (Settings Modal)
+          ========================================== */}
+      {isSettingsOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
+          <div style={{ background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, width: '100%', maxWidth: '500px', border: `1px solid ${c.border}`, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 'bold', borderBottom: `1px solid ${c.border}`, paddingBottom: '12px', color: c.accent }}>{t.settingsTitle}</h3>
+            
+            {/* خيار لغة التطبيق */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectLang}</label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={() => setLang('ar')} style={{ flex: 1, padding: '10px', background: lang === 'ar' ? c.accent : c.bg, color: lang === 'ar' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>العربية</button>
+                <button onClick={() => setLang('en')} style={{ flex: 1, padding: '10px', background: lang === 'en' ? c.accent : c.bg, color: lang === 'en' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>English</button>
+              </div>
+            </div>
+
+            {/* خيار بالتة الألوان الفنية */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectTheme}</label>
+              <select value={currentThemeKey} onChange={(e) => setCurrentThemeKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, fontWeight: 'bold' }}>
+                <option value="deepDark">{t.theme1}</option>
+                <option value="cleanLight">{t.theme2}</option>
+                <option value="emeraldPro">{t.theme3}</option>
+                <option value="charcoalLuxury">{t.theme4}</option>
+              </select>
+            </div>
+
+            {/* خيار حجم الخط لكروت البيانات */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.fontSizeLabel}</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {(['14px', '16px', '18px'] as const).map(size => (
+                  <button key={size} onClick={() => setFontSize(size)} style={{ flex: 1, padding: '8px', background: fontSize === size ? c.accent : c.bg, color: fontSize === size ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: size }}>
+                    {size === '14px' ? t.fontSmall : size === '16px' ? t.fontMedium : t.fontLarge}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* خيار نمط الحواف الزاوية */}
+            <div style={{ marginBottom: '28px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.borderRadiusLabel}</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setBorderRadius('0px')} style={{ flex: 1, padding: '8px', background: borderRadius === '0px' ? c.accent : c.bg, color: borderRadius === '0px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '0px', cursor: 'pointer' }}>{t.radiusSharp}</button>
+                <button onClick={() => setBorderRadius('8px')} style={{ flex: 1, padding: '8px', background: borderRadius === '8px' ? c.accent : c.bg, color: borderRadius === '8px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer' }}>{t.radiusModern}</button>
+                <button onClick={() => setBorderRadius('16px')} style={{ flex: 1, padding: '8px', background: borderRadius === '16px' ? c.accent : c.bg, color: borderRadius === '16px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '12px', cursor: 'pointer' }}>{t.radiusRounded}</button>
+              </div>
+            </div>
+
+            <button onClick={() => setIsSettingsOpen(false)} style={{ width: '100%', padding: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>{t.saveClose}</button>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          4. نافذة البحث الشامل والمحسن
+          ========================================== */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '20px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
           <div style={{
-            background: isDarkMode ? '#141c38' : '#ffffff', color: isDarkMode ? '#f8fafc' : '#0f172a',
-            borderRadius: isMaximized ? '0px' : '16px', width: isMaximized ? '100vw' : '90vw', height: isMaximized ? '100vh' : '85vh',
-            maxWidth: isMaximized ? '100vw' : '1155px', maxHeight: isMaximized ? '100vh' : '800px',
+            background: c.cardBg, color: c.text, borderRadius: isMaximized ? '0px' : borderRadius, 
+            width: isMaximized ? '100vw' : '90vw', height: isMaximized ? '100vh' : '85vh',
+            maxWidth: isMaximized ? '100vw' : '1200px', maxHeight: isMaximized ? '100vh' : '850px',
             display: 'flex', flexDirection: 'column', padding: '24px', boxSizing: 'border-box',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: `1px solid ${isDarkMode ? '#22315e' : '#e2e8f0'}`
+            border: `1px solid ${c.border}`, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.2s'
           }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>{t.globalSearch}</h3>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: c.accent }}>{t.globalSearch}</h3>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setIsMaximized(!isMaximized)} style={{ background: '#22315e', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>{isMaximized ? t.minimize : t.maximize}</button>
+                <button onClick={() => setIsMaximized(!isMaximized)} style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{isMaximized ? t.minimize : t.maximize}</button>
                 <button onClick={() => { setIsModalOpen(false); setIsMaximized(false); }} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
               </div>
             </div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {databases.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
+                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
               ) : (
                 <>
+                  {/* صندوق البحث الديناميكي مع إصلاح التداخل التلقائي */}
                   <div style={{ marginBottom: '16px', position: 'relative' }}>
                     <input 
                       type="text"
@@ -313,90 +466,85 @@ export default function App() {
                       onChange={(e) => setSearchInput(e.target.value)}
                       style={{
                         width: '100%', 
-                        // تعديل الحواف ديناميكياً بناءً على اتجاه اللغة لمنع دخول الحروف تحت الأيقونة
-                        paddingTop: '14px',
-                        paddingBottom: '14px',
-                        paddingLeft: lang === 'ar' ? '14px' : '45px',
-                        paddingRight: lang === 'ar' ? '45px' : '14px',
-                        borderRadius: '8px',
-                        border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}`,
-                        background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000',
-                        boxSizing: 'border-box', fontSize: '16px'
+                        paddingTop: '14px', paddingBottom: '14px',
+                        paddingLeft: lang === 'ar' ? '16px' : '48px',
+                        paddingRight: lang === 'ar' ? '48px' : '16px',
+                        borderRadius: '8px', border: `1px solid ${c.border}`,
+                        background: c.bg, color: c.text,
+                        boxSizing: 'border-box', fontSize: '16px', outline: 'none'
                       }}
                       autoFocus
                     />
                     <span style={{ 
                       position: 'absolute', 
-                      // تحريك أيقونة العدسة ديناميكياً لليمين في العربي ولليسار في الإنجليزي
-                      left: lang === 'ar' ? 'auto' : '15px', 
-                      right: lang === 'ar' ? '15px' : 'auto', 
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#64748b',
-                      fontSize: '18px',
-                      pointerEvents: 'none'
+                      left: lang === 'ar' ? 'auto' : '16px', 
+                      right: lang === 'ar' ? '16px' : 'auto', 
+                      top: '50%', transform: 'translateY(-50%)',
+                      fontSize: '18px', pointerEvents: 'none'
                     }}>🔍</span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                    <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
+                  {/* فلاتر الفرز المتقدمة */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                    <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
                       <option value="all">{t.allDbs}</option>
                       {databases.map(db => <option key={db.id} value={db.id}>{db.name}</option>)}
                     </select>
 
-                    <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
+                    <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
                       <option value="all">{t.allTables}</option>
                       {dynamicTables.map((tbl, i) => <option key={i} value={tbl}>{tbl}</option>)}
                     </select>
 
-                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: isDarkMode ? '#0a1124' : '#f8fafc', color: isDarkMode ? '#fff' : '#000', border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}` }}>
+                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
                       <option value="all">{t.allColumns}</option>
                       {dynamicColumns.map((col, i) => <option key={i} value={col}>{col}</option>)}
                     </select>
                   </div>
 
+                  {/* قائمة عرض كروت البيانات */}
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                     {searchInput === '' ? (
-                      <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b', fontSize: '14px' }}>{t.searchStart}</div>
+                      <div style={{ textAlign: 'center', padding: '60px 0', color: c.textMuted, fontSize: '14px' }}>{t.searchStart}</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ fontSize: '14px', color: '#64748b', textAlign: 'left', direction: 'ltr', fontWeight: 'bold' }}>
+                        <div style={{ fontSize: '13px', color: c.textMuted, textAlign: lang === 'ar' ? 'right' : 'left', fontWeight: 'bold' }}>
                           {processedResults.length} {t.resultsCount}
                         </div>
                         
                         {processedResults.length === 0 ? (
-                          <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px' }}>لا توجد نتائج مطابقة لـ "{searchQuery}"</div>
+                          <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px', fontWeight: 'bold' }}>لا توجد سجلات مطابقة للبحث الحالي.</div>
                         ) : (
                           processedResults.map((result) => (
                             <div key={result.id} style={{
-                              background: isDarkMode ? '#0a1124' : '#f1f5f9',
-                              border: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}`,
-                              borderRadius: '10px', overflow: 'hidden',
-                              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                              background: c.bg, border: `1px solid ${c.border}`,
+                              borderRadius: borderRadius, overflow: 'hidden'
                             }}>
+                              {/* ترويسة الكرت المهيأ بلون البالتة */}
                               <div style={{
-                                background: isDarkMode ? 'rgba(59, 130, 246, 0.12)' : '#e0f2fe',
-                                padding: '12px 20px', borderBottom: `1px solid ${isDarkMode ? '#22315e' : '#cbd5e1'}`,
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                background: c.headerBg, padding: '12px 20px', 
+                                borderBottom: `1px solid ${c.border}`, display: 'flex', 
+                                justifyContent: 'space-between', alignItems: 'center'
                               }}>
-                                <span style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '15px' }}>
-                                  الشيت: {result.tableName} | الملف الأساسي: {result.dbName}
+                                <span style={{ fontWeight: 'bold', color: c.accent, fontSize: '14px' }}>
+                                  {lang === 'ar' ? `الشيت: ${result.tableName} | الملف: ${result.dbName}` : `Sheet: ${result.tableName} | File: ${result.dbName}`}
                                 </span>
                               </div>
 
+                              {/* شبكة البيانات القابلة لتغيير حجم الخط ديناميكياً */}
                               <div style={{
                                 padding: '20px', display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                                gap: '24px 16px', direction: 'rtl'
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                                gap: '20px 16px'
                               }}>
                                 {result.fields.map((field, idx) => (
-                                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'start' }}>
+                                    <span style={{ fontSize: '12px', color: c.textMuted, fontWeight: '600' }}>
                                       {field.label}
                                     </span>
                                     <span style={{
-                                      fontSize: '16px', fontWeight: 'bold',
-                                      color: field.value === '—' ? '#64748b' : (isDarkMode ? '#ffffff' : '#0f172a'),
+                                      fontSize: fontSize, fontWeight: '700',
+                                      color: field.value === '—' ? c.textMuted : c.text,
                                       wordBreak: 'break-all'
                                     }}>
                                       {field.value}
