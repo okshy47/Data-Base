@@ -5,18 +5,19 @@ import { read, utils } from 'xlsx';
 // 1. تعريف بالتات الألوان الاحترافية (Themes)
 // ==========================================
 interface ThemeColors {
-  bg: string;          // الخلفية الأساسية للتطبيق
-  cardBg: string;      // خلفية الكروت والجداول
-  text: string;        // لون النص الأساسي
-  textMuted: string;   // لون النصوص الفرعية والتوضيحية
-  border: string;      // لون الحدود والفواصل
-  accent: string;      // اللون المميز (الرئيسي للأزرار والرموز)
-  accentHover: string; // لون الزر عند تمرير الماوس
-  headerBg: string;    // خلفية ترويسة الكروت أو الهيدر
+  bg: string;
+  cardBg: string;
+  text: string;
+  textMuted: string;
+  border: string;
+  accent: string;
+  accentHover: string;
+  headerBg: string;
+  highlightBg: string;   // خلفية تمييز النصوص المطابقة المتوافقة مع الموود
+  highlightText: string; // لون نص التمييز
 }
 
 const themes: Record<string, ThemeColors> = {
-  // 1. الوضع الليلي الفاخر
   deepDark: {
     bg: '#090d1a',
     cardBg: '#121829',
@@ -25,9 +26,10 @@ const themes: Record<string, ThemeColors> = {
     border: '#1e293b',
     accent: '#3b82f6',
     accentHover: '#2563eb',
-    headerBg: 'rgba(59, 130, 246, 0.1)'
+    headerBg: 'rgba(59, 130, 246, 0.1)',
+    highlightBg: 'rgba(59, 130, 246, 0.35)', // تمييز أزرق مشع خفيف يناسب الوضع المظلم
+    highlightText: '#ffffff'
   },
-  // 2. الوضع المضيء النقي
   cleanLight: {
     bg: '#f8fafc',
     cardBg: '#ffffff',
@@ -36,9 +38,10 @@ const themes: Record<string, ThemeColors> = {
     border: '#cbd5e1',
     accent: '#2563eb',
     accentHover: '#1d4ed8',
-    headerBg: '#e0f2fe'
+    headerBg: '#e0f2fe',
+    highlightBg: '#fef08a', // تمييز أصفر دافئ مريح للعين في الوضع المضيء
+    highlightText: '#0f172a'
   },
-  // 3. الوضع الزمردي المهني
   emeraldPro: {
     bg: '#0f1412',
     cardBg: '#17201c',
@@ -47,9 +50,10 @@ const themes: Record<string, ThemeColors> = {
     border: '#27352f',
     accent: '#10b981',
     accentHover: '#059669',
-    headerBg: 'rgba(16, 185, 129, 0.1)'
+    headerBg: 'rgba(16, 185, 129, 0.1)',
+    highlightBg: 'rgba(16, 185, 129, 0.4)', // تمييز زمردي شفاف متناسق
+    highlightText: '#ffffff'
   },
-  // 4. الوضع الفحمي الكلاسيكي
   charcoalLuxury: {
     bg: '#121212',
     cardBg: '#1e1e1e',
@@ -58,24 +62,26 @@ const themes: Record<string, ThemeColors> = {
     border: '#2e2e2e',
     accent: '#f59e0b',
     accentHover: '#d97706',
-    headerBg: 'rgba(245, 158, 11, 0.08)'
+    headerBg: 'rgba(245, 158, 11, 0.08)',
+    highlightBg: 'rgba(245, 158, 11, 0.35)', // تمييز كهرماني فخم
+    highlightText: '#ffffff'
   }
 };
 
 // ==========================================
-// 2. نظام التراجم واللغات
+// 2. نظام التراجم واللغات (i18n)
 // ==========================================
 const translations: Record<string, any> = {
   ar: {
     title: "المستكشف",
-    subTitle: "نظام ذكي للبحث في قواعد البيانات",
-    settings: "الإعدادات ⚙️",
+    subTitle: "نظام ذكي لإدارة والبحث في قواعد البيانات",
+    settings: "الإعدادات والإرشادات ⚙️",
     importDb: "استيراد ملف (Excel/CSV)",
     globalSearch: "البحث الشامل 🔍",
     importFirst: "برجاء استيراد قاعدة بيانات أولاً للتمكن من البحث",
     savedDbs: "قواعد البيانات النشطة",
-    noDbs: "لا توجد قواعد بيانات مستوردة",
-    noDbsSub: "اضغط على زر الاستيراد لاختيار ملفات البيانات وعرضها فوراً.",
+    noDbs: "لا توجد قواعد بيانات مستوردة حالياً",
+    noDbsSub: "اضغط على زر الاستيراد بالأعلى لاختيار ملفات البيانات وعرضها فوراً في القائمة.",
     tables: "شيتات",
     rows: "صفوف",
     searchPlaceholder: "اكتب هنا للبحث الذكي السريع...",
@@ -87,8 +93,11 @@ const translations: Record<string, any> = {
     maximize: "ملء الشاشة",
     minimize: "نافذة",
     delete: "حذف",
+    enableHighlight: "تفعيل تمييز الكلمات المطابقة (Highlight)",
     // كلمات نافذة الإعدادات
-    settingsTitle: "لوحة تحكم المظهر واللغة",
+    settingsTitle: "لوحة التحكم ودليل التشغيل",
+    tabAppearance: "⚙️ المظهر واللغة",
+    tabGuide: "📖 دليل التشغيل والإرشادات",
     selectLang: "لغة الواجهة بالتطبيق",
     selectTheme: "اختر بالتة الألوان الاحترافية",
     theme1: "الوضع الليلي الفاخر (Deep Dark)",
@@ -107,14 +116,14 @@ const translations: Record<string, any> = {
   },
   en: {
     title: "The Explorer",
-    subTitle: "Smart Database Search System",
-    settings: "Settings ⚙️",
+    subTitle: "Smart Database Search & Management System",
+    settings: "Settings & Guide ⚙️",
     importDb: "Import File (Excel/CSV)",
     globalSearch: "Global Search 🔍",
     importFirst: "Please import a database first to search",
     savedDbs: "Active Databases",
     noDbs: "No active databases loaded",
-    noDbsSub: "Click import to load your data files and display them.",
+    noDbsSub: "Click import to load your data files and display them in the list.",
     tables: "sheets",
     rows: "rows",
     searchPlaceholder: "Type here for instant smart search...",
@@ -126,7 +135,10 @@ const translations: Record<string, any> = {
     maximize: "Maximize",
     minimize: "Restore",
     delete: "Delete",
-    settingsTitle: "Appearance & Language Control",
+    enableHighlight: "Enable matching text highlighting",
+    settingsTitle: "Control Panel & User Guide",
+    tabAppearance: "⚙️ Appearance & Language",
+    tabGuide: "📖 User Guide & Instructions",
     selectLang: "Application Language",
     selectTheme: "Choose Professional Theme",
     theme1: "Deep Dark Blue",
@@ -167,12 +179,14 @@ export default function App() {
   const [borderRadius, setBorderRadius] = useState<'0px' | '8px' | '16px'>('8px');
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'appearance' | 'guide'>('appearance');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   
-  // حالات البحث
+  // حالات البحث والتمييز
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [useHighlight, setUseHighlight] = useState(true); // التحكم في تفعيل التمييز لعين المستخدم
   
   const [selectedDb, setSelectedDb] = useState('all');
   const [selectedTable, setSelectedTable] = useState('all');
@@ -181,17 +195,43 @@ export default function App() {
   const [databases, setDatabases] = useState<DatabaseItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // جلب بالتة الألوان الفعالة والترجمة
   const c = useMemo(() => themes[currentThemeKey] || themes.deepDark, [currentThemeKey]);
   const t = useMemo(() => translations[lang], [lang]);
 
-  // آلية التأخير الذكي (Debounce) لمنع الثقل عند الكتابة الفورية
+  // آلية التأخير الذكي (Debounce) لمنع الثقل عند الكتابة السريعة
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(searchInput);
     }, 250);
     return () => clearTimeout(handler);
   }, [searchInput]);
+
+  // دالة ذكية لتقسيم الكلمة المطابقة وتمييزها دون تداخل
+  const renderHighlightedText = (text: string, query: string) => {
+    if (!query || !useHighlight) return text;
+    
+    const parts = text.split(new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'));
+    return (
+      <>
+        {parts.map((part, index) => 
+          part.toLowerCase() === query.toLowerCase() ? (
+            <mark 
+              key={index} 
+              style={{ 
+                background: c.highlightBg, 
+                color: c.highlightText, 
+                padding: '1px 4px', 
+                borderRadius: '3px',
+                fontWeight: 'bold'
+              }}
+            >
+              {part}
+            </mark>
+          ) : part
+        )}
+      </>
+    );
+  };
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -349,7 +389,7 @@ export default function App() {
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '12px 20px', background: c.accent, color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>{t.globalSearch}</button>
           <button onClick={() => fileInputRef.current?.click()} style={{ padding: '12px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
-          <button onClick={() => setIsSettingsOpen(true)} style={{ padding: '12px 16px', background: c.cardBg, color: c.text, border: `1px solid ${c.border}`, borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.settings}</button>
+          <button onClick={() => { setIsSettingsOpen(true); setActiveSettingsTab('appearance'); }} style={{ padding: '12px 16px', background: c.cardBg, color: c.text, border: `1px solid ${c.border}`, borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.settings}</button>
         </div>
       </header>
 
@@ -377,53 +417,121 @@ export default function App() {
       </main>
 
       {/* ==========================================
-          3. شاشة الإعدادات المتقدمة (Settings Modal)
+          3. شاشة الإعدادات ودليل الإرشادات (Settings & Guide Modal)
           ========================================== */}
       {isSettingsOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
-          <div style={{ background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, width: '100%', maxWidth: '500px', border: `1px solid ${c.border}`, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ margin: '0 0 24px 0', fontSize: '20px', fontWeight: 'bold', borderBottom: `1px solid ${c.border}`, paddingBottom: '12px', color: c.accent }}>{t.settingsTitle}</h3>
+          <div style={{ 
+            background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, 
+            width: '100%', maxWidth: '650px', height: '80vh', border: `1px solid ${c.border}`, 
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 'bold', color: c.accent }}>{t.settingsTitle}</h3>
             
-            {/* خيار لغة التطبيق */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectLang}</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setLang('ar')} style={{ flex: 1, padding: '10px', background: lang === 'ar' ? c.accent : c.bg, color: lang === 'ar' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>العربية</button>
-                <button onClick={() => setLang('en')} style={{ flex: 1, padding: '10px', background: lang === 'en' ? c.accent : c.bg, color: lang === 'en' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>English</button>
-              </div>
+            {/* التبويبات الداخلية للإعدادات والتعليمات */}
+            <div style={{ display: 'flex', borderBottom: `2px solid ${c.border}`, marginBottom: '20px', gap: '5px' }}>
+              <button 
+                onClick={() => setActiveSettingsTab('appearance')}
+                style={{
+                  padding: '10px 16px', background: activeSettingsTab === 'appearance' ? c.bg : 'transparent',
+                  color: activeSettingsTab === 'appearance' ? c.accent : c.textMuted, border: 'none',
+                  borderBottom: activeSettingsTab === 'appearance' ? `3px solid ${c.accent}` : 'none',
+                  cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
+                }}
+              >
+                {t.tabAppearance}
+              </button>
+              <button 
+                onClick={() => setActiveSettingsTab('guide')}
+                style={{
+                  padding: '10px 16px', background: activeSettingsTab === 'guide' ? c.bg : 'transparent',
+                  color: activeSettingsTab === 'guide' ? c.accent : c.textMuted, border: 'none',
+                  borderBottom: activeSettingsTab === 'guide' ? `3px solid ${c.accent}` : 'none',
+                  cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
+                }}
+              >
+                {t.tabGuide}
+              </button>
             </div>
 
-            {/* خيار بالتة الألوان الفنية */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectTheme}</label>
-              <select value={currentThemeKey} onChange={(e) => setCurrentThemeKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, fontWeight: 'bold' }}>
-                <option value="deepDark">{t.theme1}</option>
-                <option value="cleanLight">{t.theme2}</option>
-                <option value="emeraldPro">{t.theme3}</option>
-                <option value="charcoalLuxury">{t.theme4}</option>
-              </select>
-            </div>
+            {/* محتوى التبويبات */}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', paddingRight: '5px' }}>
+              
+              {/* تبويب المظهر واللغة */}
+              {activeSettingsTab === 'appearance' && (
+                <div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectLang}</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button onClick={() => setLang('ar')} style={{ flex: 1, padding: '10px', background: lang === 'ar' ? c.accent : c.bg, color: lang === 'ar' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>العربية</button>
+                      <button onClick={() => setLang('en')} style={{ flex: 1, padding: '10px', background: lang === 'en' ? c.accent : c.bg, color: lang === 'en' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>English</button>
+                    </div>
+                  </div>
 
-            {/* خيار حجم الخط لكروت البيانات */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.fontSizeLabel}</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {(['14px', '16px', '18px'] as const).map(size => (
-                  <button key={size} onClick={() => setFontSize(size)} style={{ flex: 1, padding: '8px', background: fontSize === size ? c.accent : c.bg, color: fontSize === size ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: size }}>
-                    {size === '14px' ? t.fontSmall : size === '16px' ? t.fontMedium : t.fontLarge}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectTheme}</label>
+                    <select value={currentThemeKey} onChange={(e) => setCurrentThemeKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, fontWeight: 'bold', outline: 'none' }}>
+                      <option value="deepDark">{t.theme1}</option>
+                      <option value="cleanLight">{t.theme2}</option>
+                      <option value="emeraldPro">{t.theme3}</option>
+                      <option value="charcoalLuxury">{t.theme4}</option>
+                    </select>
+                  </div>
 
-            {/* خيار نمط الحواف الزاوية */}
-            <div style={{ marginBottom: '28px' }}>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.borderRadiusLabel}</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setBorderRadius('0px')} style={{ flex: 1, padding: '8px', background: borderRadius === '0px' ? c.accent : c.bg, color: borderRadius === '0px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '0px', cursor: 'pointer' }}>{t.radiusSharp}</button>
-                <button onClick={() => setBorderRadius('8px')} style={{ flex: 1, padding: '8px', background: borderRadius === '8px' ? c.accent : c.bg, color: borderRadius === '8px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer' }}>{t.radiusModern}</button>
-                <button onClick={() => setBorderRadius('16px')} style={{ flex: 1, padding: '8px', background: borderRadius === '16px' ? c.accent : c.bg, color: borderRadius === '16px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '12px', cursor: 'pointer' }}>{t.radiusRounded}</button>
-              </div>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.fontSizeLabel}</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {(['14px', '16px', '18px'] as const).map(size => (
+                        <button key={size} onClick={() => setFontSize(size)} style={{ flex: 1, padding: '8px', background: fontSize === size ? c.accent : c.bg, color: fontSize === size ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: size }}>
+                          {size === '14px' ? t.fontSmall : size === '16px' ? t.fontMedium : t.fontLarge}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.borderRadiusLabel}</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setBorderRadius('0px')} style={{ flex: 1, padding: '8px', background: borderRadius === '0px' ? c.accent : c.bg, color: borderRadius === '0px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '0px', cursor: 'pointer' }}>{t.radiusSharp}</button>
+                      <button onClick={() => setBorderRadius('8px')} style={{ flex: 1, padding: '8px', background: borderRadius === '8px' ? c.accent : c.bg, color: borderRadius === '8px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer' }}>{t.radiusModern}</button>
+                      <button onClick={() => setBorderRadius('16px')} style={{ flex: 1, padding: '8px', background: borderRadius === '16px' ? c.accent : c.bg, color: borderRadius === '16px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '12px', cursor: 'pointer' }}>{t.radiusRounded}</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* تبويب دليل التشغيل والإرشادات الشامل (منظم وبسيط) */}
+              {activeSettingsTab === 'guide' && (
+                <div style={{ lineHeight: '1.7', fontSize: '14px', textAlign: 'start' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: c.accent, fontWeight: 'bold' }}>🚀 نظرة عامة على تطبيق المستكشف:</h4>
+                  <p style={{ margin: '0 0 16px 0', color: c.textMuted }}>تم تصميم هذا النظام لتمكينك من استيراد قواعد البيانات والملفات الكبيرة والبحث داخل كافة شيتاتها وحقولها بسرعة البرق وبدون أي اتصال بالإنترنت.</p>
+
+                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>1️⃣ استيراد البيانات (Import):</h4>
+                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
+                    <li>يدعم التطبيق حالياً ملفات <b>Excel (.xlsx, .xls)</b> وملفات <b>CSV</b> المقسمة بفواصل.</li>
+                    <li>عند استيراد أي ملف، يقوم المحرك الذكي بقراءة كافة "الشيتات" المتواجدة داخله بشكل تلقائي وتهيئتها للبحث المباشر.</li>
+                  </ul>
+
+                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>2️⃣ محرك البحث الشامل (Global Search):</h4>
+                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
+                    <li><b>البحث السلس والسرعة:</b> يمتلك التطبيق آلية تأخير ذكي للبحث، تتيح لك الكتابة بسلاسة فائقة دون أي ثقل (Lag) حتى في الملفات المليونية.</li>
+                    <li><b>الفلترة المتقدمة:</b> يمكنك حصر نطاق بحثك في ملف معين، أو شيت محدد، أو حتى عمود مخصص لتسريع الوصول للمعلومة.</li>
+                    <li><b>ميزة تمييز النص (Highlight):</b> ميزة تلوين الكلمة المطابقة تلقائياً بلون متوافق مع مظهر التطبيق لسهولة رصدها بالعين، ويمكن إيقافها في أي وقت من زر التحكم بجانب شريط البحث.</li>
+                  </ul>
+
+                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>3️⃣ شروط هامة لملفات Word & PDF (قيد التطوير):</h4>
+                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
+                    <li><b>ملفات PDF المدعومة:</b> يجب أن تكون ملفات PDF منسوخة أو مستخرجة من نصوص أصلية (Digital PDF).</li>
+                    <li><b>الملفات المصورة (Scanned):</b> الأوراق المصورة بكاميرا الهاتف أو السكنر غير مدعومة حالياً لأنها تُعامل كصور ثابتة وتتطلب معالجة ثقيلة قد تضر بسرعة محرك البحث.</li>
+                  </ul>
+
+                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>4️⃣ الطباعة والتقارير (قيد التطوير):</h4>
+                  <ul style={{ margin: '0 0 5px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
+                    <li>سيتاح قريباً زر تصدير مباشر لنتائج البحث المصفاة في تقرير ورقي منظم بحجم <b>A4</b> جاهز للحفظ أو الطباعة المباشرة، مع خيارات متطورة لإخفاء أو إظهار العلامات الملونة للتقارير الرسمية.</li>
+                  </ul>
+                </div>
+              )}
+
             </div>
 
             <button onClick={() => setIsSettingsOpen(false)} style={{ width: '100%', padding: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>{t.saveClose}</button>
@@ -432,7 +540,7 @@ export default function App() {
       )}
 
       {/* ==========================================
-          4. نافذة البحث الشامل والمحسن
+          4. نافذة البحث الشامل والمحسن مع التمييز
           ========================================== */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
@@ -457,8 +565,8 @@ export default function App() {
                 <div style={{ textAlign: 'center', padding: '50px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
               ) : (
                 <>
-                  {/* صندوق البحث الديناميكي مع إصلاح التداخل التلقائي */}
-                  <div style={{ marginBottom: '16px', position: 'relative' }}>
+                  {/* صندوق البحث المحسن والذكي */}
+                  <div style={{ marginBottom: '12px', position: 'relative' }}>
                     <input 
                       type="text"
                       placeholder={t.searchPlaceholder}
@@ -482,6 +590,20 @@ export default function App() {
                       top: '50%', transform: 'translateY(-50%)',
                       fontSize: '18px', pointerEvents: 'none'
                     }}>🔍</span>
+                  </div>
+
+                  {/* خيار تحكم المستخدم السريع في تفعيل/تعطيل الـ Highlight */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', justifyContent: 'flex-start' }}>
+                    <input 
+                      type="checkbox" 
+                      id="highlightToggle" 
+                      checked={useHighlight} 
+                      onChange={(e) => setUseHighlight(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: c.accent }}
+                    />
+                    <label htmlFor="highlightToggle" style={{ fontSize: '13px', color: c.textMuted, cursor: 'pointer', fontWeight: '600' }}>
+                      {t.enableHighlight}
+                    </label>
                   </div>
 
                   {/* فلاتر الفرز المتقدمة */}
@@ -520,7 +642,6 @@ export default function App() {
                               background: c.bg, border: `1px solid ${c.border}`,
                               borderRadius: borderRadius, overflow: 'hidden'
                             }}>
-                              {/* ترويسة الكرت المهيأ بلون البالتة */}
                               <div style={{
                                 background: c.headerBg, padding: '12px 20px', 
                                 borderBottom: `1px solid ${c.border}`, display: 'flex', 
@@ -531,7 +652,6 @@ export default function App() {
                                 </span>
                               </div>
 
-                              {/* شبكة البيانات القابلة لتغيير حجم الخط ديناميكياً */}
                               <div style={{
                                 padding: '20px', display: 'grid',
                                 gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
@@ -542,12 +662,13 @@ export default function App() {
                                     <span style={{ fontSize: '12px', color: c.textMuted, fontWeight: '600' }}>
                                       {field.label}
                                     </span>
+                                    {/* عرض النص مع التمييز الذكي المتغير */}
                                     <span style={{
                                       fontSize: fontSize, fontWeight: '700',
                                       color: field.value === '—' ? c.textMuted : c.text,
                                       wordBreak: 'break-all'
                                     }}>
-                                      {field.value}
+                                      {renderHighlightedText(field.value, searchQuery)}
                                     </span>
                                   </div>
                                 ))}
