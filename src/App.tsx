@@ -69,6 +69,17 @@ const themes: Record<string, ThemeColors> = {
 };
 
 // ==========================================
+// مكون الشعار الرسومي (المكبر والمجلد الذكي) المتوافق مع الثيمات
+// ==========================================
+const AppLogo = ({ accentColor, size = 40 }: { accentColor: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <path d="M19 20H5C3.89543 20 3 19.1046 3 18V6C3 4.89543 3.89543 4 5 4H10L12 6H19C20.1046 6 21 6.89543 21 8V18C21 19.1046 20.1046 20 19 20Z" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill={`${accentColor}15`} />
+    <circle cx="14" cy="13" r="3" stroke={accentColor} strokeWidth="2" fill="#090d1a" />
+    <path d="M16.5 15.5L19.5 18.5" stroke={accentColor} strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+// ==========================================
 // 2. نظام التراجم واللغات (i18n)
 // ==========================================
 const translations: Record<string, any> = {
@@ -321,9 +332,6 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // ==========================================
-  // [تعديل المرحلة 2 المحسن]: حساب الشيتات المتاحة هندسياً بدون ضغط
-  // ==========================================
   const dynamicTables = useMemo(() => {
     if (selectedDb === 'all') {
       const sheetsSet = new Set<string>();
@@ -338,9 +346,6 @@ export default function App() {
     return databases.find(db => db.id === selectedDb)?.tables.map(t => t.tableName) || [];
   }, [selectedDb, databases]);
 
-  // ==========================================
-  // [تعديل المرحلة 2 المحسن]: تجميع الأعمدة المتاحة بمعادلات سريعة تفادياً للـ Lag
-  // ==========================================
   const dynamicColumns = useMemo(() => {
     const columnsSet = new Set<string>();
     
@@ -507,9 +512,13 @@ export default function App() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         borderBottom: `1px solid ${c.border}`, paddingBottom: '20px', flexWrap: 'wrap', gap: '15px' 
       }}>
-        <div>
-          <h1 style={{ fontSize: '26px', margin: 0, fontWeight: '800', color: c.accent }}>{t.title}</h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: c.textMuted }}>{t.subTitle}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {/* دمج اللوجو الذكي في واجهة التطبيق الرئيسية */}
+          <AppLogo accentColor={c.accent} size={48} />
+          <div>
+            <h1 style={{ fontSize: '26px', margin: 0, fontWeight: '800', color: c.accent }}>{t.title}</h1>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: c.textMuted }}>{t.subTitle}</p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '12px 20px', background: c.accent, color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
@@ -540,6 +549,123 @@ export default function App() {
         )}
       </main>
 
+      {/* نافذة البحث الشامل والمتقدم الرائعة (Modal) */}
+      {isModalOpen && (
+        <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(4,8,16,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(5px)' }}>
+          <div style={{ 
+            background: c.cardBg, color: c.text, padding: '24px', borderRadius: borderRadius, 
+            width: '100%', maxWidth: isMaximized ? '96vw' : '840px', height: isMaximized ? '94vh' : '85vh', 
+            border: `1px solid ${c.border}`, display: 'flex', flexDirection: 'column', transition: 'all 0.2s ease'
+          }}>
+            
+            {/* الجزء العلوي المطور: أزرار التحكم واللوجو الاحترافي */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* دمج اللوجو الذكي أعلى شاشة البحث بشكل مركزي فخم */}
+                <AppLogo accentColor={c.accent} size={36} />
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: c.accent }}>{t.globalSearch}</h3>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setIsMaximized(!isMaximized)} style={{ background: 'transparent', border: `1px solid ${c.border}`, color: c.textMuted, padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                  {isMaximized ? t.minimize : t.maximize}
+                </button>
+                <button onClick={() => setIsModalOpen(false)} style={{ background: '#ef4444', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+              </div>
+            </div>
+
+            {/* شريط الإدخال ومحرك الفلاتر */}
+            <div style={{ marginBottom: '16px', position: 'relative' }}>
+              <input 
+                type="text" 
+                value={searchInput} 
+                onChange={(e) => setSearchInput(e.target.value)} 
+                placeholder={t.searchPlaceholder} 
+                style={{ width: '100%', padding: '14px 16px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: '10px', fontSize: '16px', outline: 'none' }}
+              />
+            </div>
+
+            {/* الفلاتر الذكية ثلاثية الأبعاد (ملف - شيت - عمود) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+              <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: '8px', outline: 'none', fontWeight: '600' }}>
+                <option value="all">{t.allDbs}</option>
+                {databases.map(db => <option key={db.id} value={db.id}>{db.cleanName}</option>)}
+              </select>
+
+              <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} style={{ padding: '10px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: '8px', outline: 'none', fontWeight: '600' }}>
+                <option value="all">{t.allTables}</option>
+                {dynamicTables.map(tblName => <option key={tblName} value={tblName}>{tblName}</option>)}
+              </select>
+
+              <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: '8px', outline: 'none', fontWeight: '600' }}>
+                <option value="all">{t.allColumns}</option>
+                {dynamicColumns.map(colName => <option key={colName} value={colName}>{colName}</option>)}
+              </select>
+            </div>
+
+            {/* خيارات التخصيص والطباعة السريعة قبل إخراج التقرير */}
+            <div style={{ background: c.bg, padding: '12px', borderRadius: '8px', border: `1px solid ${c.border}`, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13.5px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={useHighlight} onChange={(e) => setUseHighlight(e.target.checked)} />
+                {t.enableHighlight}
+              </label>
+              
+              <div style={{ height: '1px', background: c.border, margin: '4px 0' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <span style={{ fontSize: '13px', color: c.textMuted, fontWeight: 'bold' }}>{t.printOptions}</span>
+                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={printShowLogo} onChange={(e) => setPrintShowLogo(e.target.checked)} />
+                    {t.showLogoOpt}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={printKeepHighlight} onChange={(e) => setPrintKeepHighlight(e.target.checked)} />
+                    {t.keepHighlightOpt}
+                  </label>
+                </div>
+                <button onClick={handlePrint} disabled={processedResults.length === 0} style={{ padding: '8px 16px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', cursor: processedResults.length === 0 ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '13.5px' }}>
+                  {t.printReport}
+                </button>
+              </div>
+            </div>
+
+            {/* عرض النتائج الفورية وعزل التمرير لعدم حدوث Lag */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+              {processedResults.length === 0 ? (
+                <p style={{ textAlign: 'center', color: c.textMuted, marginTop: '40px', fontSize: '14.5px' }}>
+                  {searchInput ? "لا توجد نتائج مطابقة لمعايير البحث الحالية." : t.searchStart}
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ fontSize: '13.5px', color: c.accent, fontWeight: 'bold' }}>
+                    {processedResults.length} {t.resultsCount}
+                  </div>
+                  {processedResults.map((res) => (
+                    <div key={res.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: '10px', padding: '16px' }}>
+                      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', fontSize: '12px', color: c.textMuted, flexWrap: 'wrap', borderBottom: `1px dashed ${c.border}`, paddingBottom: '6px' }}>
+                        <span>📁 {res.dbName}</span>
+                        <span>📊 {res.tableName}</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                        {res.fields.map((f, idx) => (
+                          <div key={idx} style={{ fontSize: fontSize, background: c.cardBg, padding: '8px 12px', borderRadius: '6px', border: `1px solid ${c.border}` }}>
+                            <span style={{ display: 'block', fontSize: '11.5px', color: c.textMuted, fontWeight: 'bold', marginBottom: '4px' }}>{f.label}</span>
+                            <span style={{ wordBreak: 'break-all', fontWeight: '500' }}>
+                              {useHighlight ? renderHighlightedText(f.value, searchQuery) : f.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* لوحة الإعدادات */}
       {isSettingsOpen && (
         <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
@@ -564,7 +690,7 @@ export default function App() {
 
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.selectTheme}</label>
-                    <select value={currentThemeKey} onChange={(e) => setCurrentThemeKey(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, fontWeight: 'bold', outline: 'none' }}>
+                    <select value={currentThemeKey} onChange={(e) => setCurrentThemeKey(e.target.value)} style={{ width: '100%', padding: '12px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: '6px', outline: 'none', fontSize: '14px', fontWeight: '600' }}>
                       <option value="deepDark">{t.theme1}</option>
                       <option value="cleanLight">{t.theme2}</option>
                       <option value="emeraldPro">{t.theme3}</option>
@@ -574,249 +700,115 @@ export default function App() {
 
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.fontSizeLabel}</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {(['14px', '16px', '18px'] as const).map(size => (
-                        <button key={size} onClick={() => setFontSize(size)} style={{ flex: 1, padding: '8px', background: fontSize === size ? c.accent : c.bg, color: fontSize === size ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: size }}>
-                          {size === '14px' ? t.fontSmall : size === '16px' ? t.fontMedium : t.fontLarge}
-                        </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {([['14px', t.fontSmall], ['16px', t.fontMedium], ['18px', t.fontLarge]] as const).map(([sz, lbl]) => (
+                        <button key={sz} onClick={() => setFontSize(sz)} style={{ flex: 1, padding: '10px', background: fontSize === sz ? c.accent : c.bg, color: fontSize === sz ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{lbl}</button>
                       ))}
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: '10px' }}>
+                  <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', color: c.textMuted }}>{t.borderRadiusLabel}</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => setBorderRadius('0px')} style={{ flex: 1, padding: '8px', background: borderRadius === '0px' ? c.accent : c.bg, color: borderRadius === '0px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '0px', cursor: 'pointer' }}>{t.radiusSharp}</button>
-                      <button onClick={() => setBorderRadius('8px')} style={{ flex: 1, padding: '8px', background: borderRadius === '8px' ? c.accent : c.bg, color: borderRadius === '8px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer' }}>{t.radiusModern}</button>
-                      <button onClick={() => setBorderRadius('16px')} style={{ flex: 1, padding: '8px', background: borderRadius === '16px' ? c.accent : c.bg, color: borderRadius === '16px' ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '12px', cursor: 'pointer' }}>{t.radiusRounded}</button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {([['0px', t.radiusSharp], ['8px', t.radiusModern], ['16px', t.radiusRounded]] as const).map(([rad, lbl]) => (
+                        <button key={rad} onClick={() => setBorderRadius(rad)} style={{ flex: 1, padding: '10px', background: borderRadius === rad ? c.accent : c.bg, color: borderRadius === rad ? '#fff' : c.text, border: `1px solid ${c.border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{lbl}</button>
+                      ))}
                     </div>
                   </div>
                 </div>
               )}
 
               {activeSettingsTab === 'guide' && (
-                <div style={{ lineHeight: '1.7', fontSize: '14px', textAlign: 'start' }}>
-                  <h4 style={{ margin: '0 0 10px 0', color: c.accent, fontWeight: 'bold' }}>🚀 نظرة عامة على تطبيق المستكشف:</h4>
-                  <p style={{ margin: '0 0 16px 0', color: c.textMuted }}>تم تصميم هذا النظام لتمكينك من استيراد قواعد البيانات والملفات الكبيرة والبحث داخل كافة شيتاتها وحقولها بسرعة البرق وبدون أي اتصال بالإنترنت.</p>
-                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>1️⃣ استيراد البيانات (Import):</h4>
-                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li>يدعم التطبيق حالياً ملفات <b>Excel (.xlsx, .xls)</b> وملفات <b>CSV</b> المقسمة بفواصل.</li>
-                  </ul>
-                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>2️⃣ محرك البحث الشامل (Global Search):</h4>
-                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li><b>ميزة تمييز النص (Highlight):</b> ميزة تلوين الكلمة المطابقة تلقائياً بلون متوافق مع مظهر التطبيق لسهولة رصدها بالعين.</li>
-                  </ul>
-                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>3️⃣ شروط هامة لملفات Word & PDF (قيد التطوير):</h4>
-                  <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li><b>ملفات PDF المدعومة:</b> يجب أن تكون ملفات PDF منسوخة أو مستخرجة من نصوص أصلية (Digital PDF).</li>
-                  </ul>
-                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>4️⃣ الطباعة والتقارير الاحترافية (جديد):</h4>
-                  <ul style={{ margin: '0 0 5px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li>يمكنك الآن توليد تقرير فوري ومنسق بحجم <b>A4</b> لنتائج البحث المصفاة بحرية تامة وبمظهر رسمي.</li>
-                  </ul>
+                <div style={{ fontSize: '14.5px', lineHeight: '1.8', color: c.text }}>
+                  {lang === 'ar' ? (
+                    <>
+                      <h4 style={{ color: c.accent, margin: '0 0 10px 0', fontWeight: 'bold' }}>💡 إرشادات الاستخدام السريع:</h4>
+                      <ul style={{ paddingRight: '20px', margin: 0 }}>
+                        <li>قم برفع ملفات الإكسيل بالضغط على زر <b>استيراد ملف</b>.</li>
+                        <li>يمكنك رفع أكثر من ملف للعمل عليها بالتوازي في نفس الجلسة.</li>
+                        <li>اضغط على زر <b>البحث الشامل</b> لفتح محرك التصفية والمطابقة الفورية للحقول.</li>
+                        <li>استخدم خيارات طباعة التقرير لإخراج مستندات A4 رسمية ومطابقتها لمتطلبات العمل.</li>
+                      </ul>
+                    </>
+                  ) : (
+                    <>
+                      <h4 style={{ color: c.accent, margin: '0 0 10px 0', fontWeight: 'bold' }}>💡 Quick Operation Guide:</h4>
+                      <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                        <li>Upload your Excel files by clicking the <b>Import File</b> button.</li>
+                        <li>You can upload multiple files to look up data concurrently.</li>
+                        <li>Open the <b>Global Search</b> dashboard for instant data extraction.</li>
+                        <li>Utilize advanced printing options to render well-structured A4 professional sheets.</li>
+                      </ul>
+                    </>
+                  )}
                 </div>
               )}
             </div>
 
-            <button onClick={() => setIsSettingsOpen(false)} style={{ width: '100%', padding: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>{t.saveClose}</button>
+            <button onClick={() => setIsSettingsOpen(false)} style={{ width: '100%', padding: '12px', background: c.accent, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>{t.saveClose}</button>
           </div>
         </div>
       )}
 
-      {/* نافذة البحث الشامل والمحسن */}
-      {isModalOpen && (
-        <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
-          <div style={{
-            background: c.cardBg, color: c.text, borderRadius: isMaximized ? '0px' : borderRadius, 
-            width: isMaximized ? '100vw' : '90vw', height: isMaximized ? '100vh' : '85vh',
-            maxWidth: isMaximized ? '100vw' : '1200px', maxHeight: isMaximized ? '100vh' : '850px',
-            display: 'flex', flexDirection: 'column', padding: '24px', boxSizing: 'border-box',
-            border: `1px solid ${c.border}`, boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.2s'
-          }}>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: c.accent }}>{t.globalSearch}</h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setIsMaximized(!isMaximized)} style={{ background: c.bg, color: c.text, border: `1px solid ${c.border}`, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{isMaximized ? t.minimize : t.maximize}</button>
-                <button onClick={() => { setIsModalOpen(false); setIsMaximized(false); }} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              {databases.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '50px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
-              ) : (
-                <>
-                  <div style={{ marginBottom: '12px', position: 'relative' }}>
-                    <input 
-                      type="text"
-                      placeholder={t.searchPlaceholder}
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      style={{
-                        width: '100%', paddingTop: '14px', paddingBottom: '14px',
-                        paddingLeft: lang === 'ar' ? '16px' : '48px', paddingRight: lang === 'ar' ? '48px' : '16px',
-                        borderRadius: '8px', border: `1px solid ${c.border}`, background: c.bg, color: c.text,
-                        boxSizing: 'border-box', fontSize: '16px', outline: 'none'
-                      }}
-                      autoFocus
-                    />
-                    <span style={{ position: 'absolute', left: lang === 'ar' ? 'auto' : '16px', right: lang === 'ar' ? '16px' : 'auto', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', pointerEvents: 'none' }}>🔍</span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', justifyContent: 'flex-start' }}>
-                    <input type="checkbox" id="highlightToggle" checked={useHighlight} onChange={(e) => setUseHighlight(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: c.accent }} />
-                    <label htmlFor="highlightToggle" style={{ fontSize: '13px', color: c.textMuted, cursor: 'pointer', fontWeight: '600' }}>{t.enableHighlight}</label>
-                  </div>
-
-                  {/* فلاتر الفرز المتقدمة السريعة */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-                    <select value={selectedDb} onChange={(e) => setSelectedDb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
-                      <option value="all">{t.allDbs}</option>
-                      {databases.map(db => <option key={db.id} value={db.id}>{db.name}</option>)}
-                    </select>
-
-                    <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
-                      <option value="all">{t.allTables}</option>
-                      {dynamicTables.map((tbl, i) => <option key={i} value={tbl}>{tbl}</option>)}
-                    </select>
-
-                    <select value={selectedColumn} onChange={(e) => setSelectedColumn(e.target.value)} style={{ padding: '10px', borderRadius: '6px', background: c.bg, color: c.text, border: `1px solid ${c.border}`, outline: 'none' }}>
-                      <option value="all">{t.allColumns}</option>
-                      {dynamicColumns.map((col, i) => <option key={i} value={col}>{col}</option>)}
-                    </select>
-                  </div>
-
-                  {/* لوحة التحكم بالتقارير والطباعة A4 */}
-                  {searchQuery && processedResults.length > 0 && (
-                    <div style={{ 
-                      background: c.bg, border: `1px solid ${c.border}`, borderRadius: '8px', 
-                      padding: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' 
-                    }}>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: c.accent }}>{t.printOptions}</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                          <input type="checkbox" checked={printShowLogo} onChange={(e) => setPrintShowLogo(e.target.checked)} style={{ accentColor: c.accent }} />
-                          {t.showLogoOpt}
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                          <input type="checkbox" checked={printKeepHighlight} onChange={(e) => setPrintKeepHighlight(e.target.checked)} style={{ accentColor: c.accent }} />
-                          {t.keepHighlightOpt}
-                        </label>
-                      </div>
-                      <button onClick={handlePrint} style={{ 
-                        alignSelf: 'flex-start', padding: '10px 20px', background: '#3b82f6', 
-                        color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', 
-                        fontWeight: 'bold', fontSize: '14px', marginTop: '4px' 
-                      }}>
-                        {t.printReport}
-                      </button>
-                    </div>
-                  )}
-
-                  <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
-                    {searchInput === '' ? (
-                      <div style={{ textAlign: 'center', padding: '60px 0', color: c.textMuted, fontSize: '14px' }}>{t.searchStart}</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ fontSize: '13px', color: c.textMuted, textAlign: lang === 'ar' ? 'right' : 'left', fontWeight: 'bold' }}>
-                          {processedResults.length} {t.resultsCount}
-                        </div>
-                        
-                        {processedResults.length === 0 ? (
-                          <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px', fontWeight: 'bold' }}>لا توجد سجلات مطابقة للبحث الحالي.</div>
-                        ) : (
-                          processedResults.map((result) => (
-                            <div key={result.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: borderRadius, overflow: 'hidden' }}>
-                              <div style={{ background: c.headerBg, padding: '12px 20px', borderBottom: `1px solid ${c.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 'bold', color: c.accent, fontSize: '14px' }}>
-                                  {lang === 'ar' ? `الشيت: ${result.tableName} | الملف: ${result.dbName}` : `Sheet: ${result.tableName} | File: ${result.dbName}`}
-                                </span>
-                              </div>
-
-                              <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px 16px' }}>
-                                {result.fields.map((field, idx) => (
-                                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'start' }}>
-                                    <span style={{ fontSize: '12px', color: c.textMuted, fontWeight: '600' }}>{field.label}</span>
-                                    <span style={{ fontSize: fontSize, fontWeight: '700', color: field.value === '—' ? c.textMuted : c.text, wordBreak: 'break-all' }}>
-                                      {renderHighlightedText(field.value, searchQuery)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* حاوية الطباعة والتقارير الرسمية المنفصلة */}
-      <div className="print-report-container" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', fontFamily: 'system-ui, sans-serif' }}>
+      {/* ======================================================= */}
+      {/* 📊 هيكل التقرير الطباعي المخفي المخصص لإخراج مستندات A4 المنسقة */}
+      {/* ======================================================= */}
+      <div className="print-report-container">
         {printShowLogo && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #000', paddingBottom: '12px', marginBottom: '25px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '45px', height: '45px', borderRadius: '6px', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px', color: '#0f172a' }}>🕵️‍♂️</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between', borderBottom: '2px solid #000', paddingBottom: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ border: '2px solid #000', padding: '4px', borderRadius: '6px' }}>🔍📁</div>
               <div>
-                <h1 style={{ fontSize: '22px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{t.title}</h1>
-                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>{t.subTitle}</p>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0, color: '#000' }}>{t.title}</h1>
+                <p style={{ fontSize: '12px', margin: '2px 0 0 0', color: '#475569' }}>{t.subTitle}</p>
               </div>
             </div>
-            <div style={{ textAlign: 'start', fontSize: '12px', color: '#475569' }}>
-              <div><b>{t.reportDate}</b></div>
-              <div>{currentDateString}</div>
+            <div style={{ textAlign: 'left', fontSize: '12px', color: '#475569' }}>
+              <div>{t.reportDate} {currentDateString}</div>
             </div>
           </div>
         )}
 
-        <div className="print-header-badge" style={{ padding: '12px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #cbd5e1', textAlign: 'start' }}>
-          <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0f172a', fontWeight: 'bold' }}>{t.reportTitle}</h2>
-          <div style={{ fontSize: '13px', color: '#334155' }}>
-            <b>{t.searchWord}</b> <span style={{ padding: '2px 6px', background: '#e2e8f0', borderRadius: '4px', fontWeight: 'bold' }}>"{searchQuery}"</span>
-          </div>
+        <div className="print-header-badge" style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#0f172a' }}>{t.reportTitle}</h2>
+          <div>{t.searchWord} <strong style={{ fontSize: '14px', color: '#000' }}>"{searchQuery}"</strong></div>
         </div>
 
-        {Object.entries(structuredPrintData).map(([dbName, tablesGroup]) => (
-          <div key={dbName} className="print-file-section" style={{ textAlign: 'start' }}>
-            <h3 style={{ fontSize: '16px', color: '#1e3a8a', borderBottom: '2px solid #cbd5e1', paddingBottom: '4px', marginBottom: '12px', fontWeight: 'bold' }}>
-              {t.fileLabel} {dbName}
-            </h3>
-            
-            {Object.entries(tablesGroup).map(([tableName, rowsList]) => (
-              <div key={tableName} style={{ marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '14px', color: '#0f766e', margin: '0 0 8px 0', fontWeight: 'bold' }}>
-                  {t.sheetLabel} {tableName}
-                </h4>
-                
-                <table className="print-table">
-                  <thead>
-                    <tr>
-                      {rowsList[0] && rowsList[0].map((f, idx) => (
-                        <th key={idx}>{f.label}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rowsList.map((rowFields, rIdx) => (
-                      <tr key={rIdx}>
-                        {rowFields.map((field, fIdx) => (
-                          <td key={fIdx}>
-                            {renderHighlightedText(field.value, searchQuery, !printKeepHighlight)}
-                          </td>
-                        ))}
+        {Object.keys(structuredPrintData).map(dbName => (
+          <div key={dbName} className="print-file-section">
+            {Object.keys(structuredPrintData[dbName]).map(tblName => {
+              const rowsArray = structuredPrintData[dbName][tblName];
+              if (rowsArray.length === 0) return null;
+              const headers = rowsArray[0].map(f => f.label);
+
+              return (
+                <div key={tblName} style={{ marginBottom: '30px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: '#0f172a', display: 'flex', gap: '15px' }}>
+                    <span>{t.fileLabel} {dbName}</span>
+                    <span>{t.sheetLabel} {tblName}</span>
+                    <span>({rowsArray.length} {t.rows})</span>
+                  </div>
+                  <table className="print-table">
+                    <thead>
+                      <tr>
+                        {headers.map((h, i) => <th key={i}>{h}</th>)}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ))}
+                    </thead>
+                    <tbody>
+                      {rowsArray.map((rowFields, rIdx) => (
+                        <tr key={rIdx}>
+                          {rowFields.map((f, cIdx) => (
+                            <td key={cIdx}>
+                              {useHighlight ? renderHighlightedText(f.value, searchQuery) : f.value}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
