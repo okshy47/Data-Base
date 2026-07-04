@@ -13,8 +13,8 @@ interface ThemeColors {
   accent: string;
   accentHover: string;
   headerBg: string;
-  highlightBg: string;   // خلفية تمييز النصوص المطابقة المتوافقة مع الموود
-  highlightText: string; // لون نص التمييز
+  highlightBg: string;   
+  highlightText: string; 
 }
 
 const themes: Record<string, ThemeColors> = {
@@ -27,7 +27,7 @@ const themes: Record<string, ThemeColors> = {
     accent: '#3b82f6',
     accentHover: '#2563eb',
     headerBg: 'rgba(59, 130, 246, 0.1)',
-    highlightBg: 'rgba(59, 130, 246, 0.35)', // تمييز أزرق مشع خفيف يناسب الوضع المظلم
+    highlightBg: 'rgba(59, 130, 246, 0.35)', 
     highlightText: '#ffffff'
   },
   cleanLight: {
@@ -39,7 +39,7 @@ const themes: Record<string, ThemeColors> = {
     accent: '#2563eb',
     accentHover: '#1d4ed8',
     headerBg: '#e0f2fe',
-    highlightBg: '#fef08a', // تمييز أصفر دافئ مريح للعين في الوضع المضيء
+    highlightBg: '#fef08a', 
     highlightText: '#0f172a'
   },
   emeraldPro: {
@@ -51,7 +51,7 @@ const themes: Record<string, ThemeColors> = {
     accent: '#10b981',
     accentHover: '#059669',
     headerBg: 'rgba(16, 185, 129, 0.1)',
-    highlightBg: 'rgba(16, 185, 129, 0.4)', // تمييز زمردي شفاف متناسق
+    highlightBg: 'rgba(16, 185, 129, 0.4)', 
     highlightText: '#ffffff'
   },
   charcoalLuxury: {
@@ -63,7 +63,7 @@ const themes: Record<string, ThemeColors> = {
     accent: '#f59e0b',
     accentHover: '#d97706',
     headerBg: 'rgba(245, 158, 11, 0.08)',
-    highlightBg: 'rgba(245, 158, 11, 0.35)', // تمييز كهرماني فخم
+    highlightBg: 'rgba(245, 158, 11, 0.35)', 
     highlightText: '#ffffff'
   }
 };
@@ -94,6 +94,16 @@ const translations: Record<string, any> = {
     minimize: "نافذة",
     delete: "حذف",
     enableHighlight: "تفعيل تمييز الكلمات المطابقة (Highlight)",
+    // إضافات الطباعة والتقارير
+    printReport: "طباعة وحفظ التقرير (A4) 🖨️",
+    printOptions: "خيارات تنسيق التقرير المطبوع:",
+    showLogoOpt: "إظهار شعار واسم التطبيق في التقرير الرسمي",
+    keepHighlightOpt: "الإبقاء على الألوان التمييزية (Highlighter) في الطباعة",
+    reportTitle: "تقرير بحث شامل ومنسق",
+    searchWord: "كلمة البحث الحالية:",
+    reportDate: "تاريخ توليد التقرير:",
+    fileLabel: "📁 ملف:",
+    sheetLabel: "📊 شيت:",
     // كلمات نافذة الإعدادات
     settingsTitle: "لوحة التحكم ودليل التشغيل",
     tabAppearance: "⚙️ المظهر واللغة",
@@ -136,6 +146,15 @@ const translations: Record<string, any> = {
     minimize: "Restore",
     delete: "Delete",
     enableHighlight: "Enable matching text highlighting",
+    printReport: "Print & Save Report (A4) 🖨️",
+    printOptions: "Printed Report Customization Options:",
+    showLogoOpt: "Show application name and logo in official report",
+    keepHighlightOpt: "Keep text highlighting colors in print out",
+    reportTitle: "Comprehensive Search Report",
+    searchWord: "Search Keyword:",
+    reportDate: "Report Generation Date:",
+    fileLabel: "📁 File:",
+    sheetLabel: "📊 Sheet:",
     settingsTitle: "Control Panel & User Guide",
     tabAppearance: "⚙️ Appearance & Language",
     tabGuide: "📖 User Guide & Instructions",
@@ -172,7 +191,6 @@ interface DatabaseItem {
 }
 
 export default function App() {
-  // حالات الإعدادات والتحكم بالـ UI
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
   const [currentThemeKey, setCurrentThemeKey] = useState<string>('deepDark');
   const [fontSize, setFontSize] = useState<'14px' | '16px' | '18px'>('16px');
@@ -183,10 +201,13 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   
-  // حالات البحث والتمييز
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [useHighlight, setUseHighlight] = useState(true); // التحكم في تفعيل التمييز لعين المستخدم
+  const [useHighlight, setUseHighlight] = useState(true); 
+
+  // حالات خيارات الطباعة المتقدمة
+  const [printShowLogo, setPrintShowLogo] = useState(true);
+  const [printKeepHighlight, setPrintKeepHighlight] = useState(false); // افتراضياً بدون تمييز ألوان للرسمية
   
   const [selectedDb, setSelectedDb] = useState('all');
   const [selectedTable, setSelectedTable] = useState('all');
@@ -198,7 +219,6 @@ export default function App() {
   const c = useMemo(() => themes[currentThemeKey] || themes.deepDark, [currentThemeKey]);
   const t = useMemo(() => translations[lang], [lang]);
 
-  // آلية التأخير الذكي (Debounce) لمنع الثقل عند الكتابة السريعة
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(searchInput);
@@ -206,9 +226,8 @@ export default function App() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // دالة ذكية لتقسيم الكلمة المطابقة وتمييزها دون تداخل
-  const renderHighlightedText = (text: string, query: string) => {
-    if (!query || !useHighlight) return text;
+  const renderHighlightedText = (text: string, query: string, forceNoHighlight = false) => {
+    if (!query || forceNoHighlight) return text;
     
     const parts = text.split(new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'));
     return (
@@ -217,6 +236,7 @@ export default function App() {
           part.toLowerCase() === query.toLowerCase() ? (
             <mark 
               key={index} 
+              className="printable-mark"
               style={{ 
                 background: c.highlightBg, 
                 color: c.highlightText, 
@@ -368,6 +388,32 @@ export default function App() {
     return results;
   }, [searchQuery, databases, selectedDb, selectedTable, selectedColumn]);
 
+  // تجميع وتقسيم النتائج هندسياً للطباعة المنفصلة حسب الملف والشيت
+  const structuredPrintData = useMemo(() => {
+    const grouped: Record<string, Record<string, Array<Array<{ label: string; value: string }>>>> = {};
+    
+    processedResults.forEach(res => {
+      if (!grouped[res.dbName]) {
+        grouped[res.dbName] = {};
+      }
+      if (!grouped[res.dbName][res.tableName]) {
+        grouped[res.dbName][res.tableName] = [];
+      }
+      grouped[res.dbName][res.tableName].push(res.fields);
+    });
+    
+    return grouped;
+  }, [processedResults]);
+
+  // دالة إطلاق أمر الطباعة الفوري للجهاز
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const currentDateString = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
   return (
     <div style={{
       padding: '24px', background: c.bg, color: c.text, minHeight: '100vh',
@@ -375,10 +421,81 @@ export default function App() {
       direction: lang === 'ar' ? 'rtl' : 'ltr', transition: 'all 0.25s ease'
     }}>
       
+      {/* حقن ستايل CSS المتقدم للتحكم الكامل بصفحة الطباعة A4 وإخفاء عناصر التطبيق */}
+      <style>{`
+        @media print {
+          body, html {
+            background: #ffffff !important;
+            color: #000000 !important;
+            direction: ${lang === 'ar' ? 'rtl' : 'ltr'} !important;
+          }
+          /* إخفاء واجهة التطبيق بالكامل أثناء الطباعة */
+          header, main, select, input, button, label, .screen-only, #highlightToggle {
+            display: none !important;
+          }
+          /* إظهار حاوية الطباعة فقط */
+          .print-report-container {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* إجبار المتصفح على عدم إخفاء الخلفيات أو التلوين المخصص للطباعة */
+          .print-header-badge {
+            background-color: #f1f5f9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          /* التحكم في ظهور أو اختفاء الـ Highlighter في النسخة المطبوعة ورقياً */
+          .printable-mark {
+            background: ${printKeepHighlight ? c.highlightBg : 'transparent'} !important;
+            color: ${printKeepHighlight ? c.highlightText : 'inherit'} !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            padding: ${printKeepHighlight ? '1px 4px' : '0'} !important;
+            border-radius: ${printKeepHighlight ? '3px' : '0'} !important;
+          }
+          /* تنسيقات الجداول الرسمية المطبوعة */
+          .print-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-bottom: 25px !important;
+            page-break-inside: avoid !important;
+          }
+          .print-table th {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+            font-weight: bold !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 8px !important;
+            font-size: 13px !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-table td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 8px !important;
+            font-size: 12px !important;
+            color: #334155 !important;
+          }
+          .print-file-section {
+            page-break-before: auto !important;
+            margin-top: 30px !important;
+          }
+          @page {
+            size: A4;
+            margin: 20mm 15mm 20mm 15mm;
+          }
+        }
+        /* إخفاء حاوية التقرير في الشاشة العادية */
+        .print-report-container {
+          display: none;
+        }
+      `}</style>
+
       <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".xlsx,.xls,.csv" />
       
-      {/* هيدر التطبيق الاحترافي */}
-      <header style={{ 
+      <header className="screen-only" style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         borderBottom: `1px solid ${c.border}`, paddingBottom: '20px', flexWrap: 'wrap', gap: '15px' 
       }}>
@@ -387,14 +504,13 @@ export default function App() {
           <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: c.textMuted }}>{t.subTitle}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '12px 20px', background: c.accent, color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>{t.globalSearch}</button>
+          <button onClick={() => { setIsModalOpen(true); setSearchInput(''); setSearchQuery(''); }} style={{ padding: '12px 20px', background: c.accent, color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.globalSearch}</button>
           <button onClick={() => fileInputRef.current?.click()} style={{ padding: '12px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.importDb}</button>
           <button onClick={() => { setIsSettingsOpen(true); setActiveSettingsTab('appearance'); }} style={{ padding: '12px 16px', background: c.cardBg, color: c.text, border: `1px solid ${c.border}`, borderRadius: borderRadius, cursor: 'pointer', fontWeight: 'bold' }}>{t.settings}</button>
         </div>
       </header>
 
-      {/* لوحة قواعد البيانات المخزنة */}
-      <main style={{ marginTop: '35px' }}>
+      <main className="screen-only" style={{ marginTop: '35px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '18px', fontWeight: '700' }}>{t.savedDbs}</h2>
         {databases.length === 0 ? (
           <div style={{ background: c.cardBg, border: `2px dashed ${c.border}`, borderRadius: borderRadius, padding: '50px 20px', textAlign: 'center', color: c.textMuted }}>
@@ -416,48 +532,18 @@ export default function App() {
         )}
       </main>
 
-      {/* ==========================================
-          3. شاشة الإعدادات ودليل الإرشادات (Settings & Guide Modal)
-          ========================================== */}
+      {/* شاشة الإعدادات ودليل الإرشادات */}
       {isSettingsOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
-          <div style={{ 
-            background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, 
-            width: '100%', maxWidth: '650px', height: '80vh', border: `1px solid ${c.border}`, 
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column'
-          }}>
+        <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
+          <div style={{ background: c.cardBg, color: c.text, padding: '28px', borderRadius: borderRadius, width: '100%', maxWidth: '650px', height: '80vh', border: `1px solid ${c.border}`, display: 'flex', flexDirection: 'column' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 'bold', color: c.accent }}>{t.settingsTitle}</h3>
             
-            {/* التبويبات الداخلية للإعدادات والتعليمات */}
             <div style={{ display: 'flex', borderBottom: `2px solid ${c.border}`, marginBottom: '20px', gap: '5px' }}>
-              <button 
-                onClick={() => setActiveSettingsTab('appearance')}
-                style={{
-                  padding: '10px 16px', background: activeSettingsTab === 'appearance' ? c.bg : 'transparent',
-                  color: activeSettingsTab === 'appearance' ? c.accent : c.textMuted, border: 'none',
-                  borderBottom: activeSettingsTab === 'appearance' ? `3px solid ${c.accent}` : 'none',
-                  cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
-                }}
-              >
-                {t.tabAppearance}
-              </button>
-              <button 
-                onClick={() => setActiveSettingsTab('guide')}
-                style={{
-                  padding: '10px 16px', background: activeSettingsTab === 'guide' ? c.bg : 'transparent',
-                  color: activeSettingsTab === 'guide' ? c.accent : c.textMuted, border: 'none',
-                  borderBottom: activeSettingsTab === 'guide' ? `3px solid ${c.accent}` : 'none',
-                  cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
-                }}
-              >
-                {t.tabGuide}
-              </button>
+              <button onClick={() => setActiveSettingsTab('appearance')} style={{ padding: '10px 16px', background: activeSettingsTab === 'appearance' ? c.bg : 'transparent', color: activeSettingsTab === 'appearance' ? c.accent : c.textMuted, border: 'none', borderBottom: activeSettingsTab === 'appearance' ? `3px solid ${c.accent}` : 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>{t.tabAppearance}</button>
+              <button onClick={() => setActiveSettingsTab('guide')} style={{ padding: '10px 16px', background: activeSettingsTab === 'guide' ? c.bg : 'transparent', color: activeSettingsTab === 'guide' ? c.accent : c.textMuted, border: 'none', borderBottom: activeSettingsTab === 'guide' ? `3px solid ${c.accent}` : 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>{t.tabGuide}</button>
             </div>
 
-            {/* محتوى التبويبات */}
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', paddingRight: '5px' }}>
-              
-              {/* تبويب المظهر واللغة */}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px' }}>
               {activeSettingsTab === 'appearance' && (
                 <div>
                   <div style={{ marginBottom: '20px' }}>
@@ -500,7 +586,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* تبويب دليل التشغيل والإرشادات الشامل (منظم وبسيط) */}
               {activeSettingsTab === 'guide' && (
                 <div style={{ lineHeight: '1.7', fontSize: '14px', textAlign: 'start' }}>
                   <h4 style={{ margin: '0 0 10px 0', color: c.accent, fontWeight: 'bold' }}>🚀 نظرة عامة على تطبيق المستكشف:</h4>
@@ -509,29 +594,24 @@ export default function App() {
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>1️⃣ استيراد البيانات (Import):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
                     <li>يدعم التطبيق حالياً ملفات <b>Excel (.xlsx, .xls)</b> وملفات <b>CSV</b> المقسمة بفواصل.</li>
-                    <li>عند استيراد أي ملف، يقوم المحرك الذكي بقراءة كافة "الشيتات" المتواجدة داخله بشكل تلقائي وتهيئتها للبحث المباشر.</li>
                   </ul>
 
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>2️⃣ محرك البحث الشامل (Global Search):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li><b>البحث السلس والسرعة:</b> يمتلك التطبيق آلية تأخير ذكي للبحث، تتيح لك الكتابة بسلاسة فائقة دون أي ثقل (Lag) حتى في الملفات المليونية.</li>
-                    <li><b>الفلترة المتقدمة:</b> يمكنك حصر نطاق بحثك في ملف معين، أو شيت محدد، أو حتى عمود مخصص لتسريع الوصول للمعلومة.</li>
                     <li><b>ميزة تمييز النص (Highlight):</b> ميزة تلوين الكلمة المطابقة تلقائياً بلون متوافق مع مظهر التطبيق لسهولة رصدها بالعين، ويمكن إيقافها في أي وقت من زر التحكم بجانب شريط البحث.</li>
                   </ul>
 
                   <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>3️⃣ شروط هامة لملفات Word & PDF (قيد التطوير):</h4>
                   <ul style={{ margin: '0 0 16px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
                     <li><b>ملفات PDF المدعومة:</b> يجب أن تكون ملفات PDF منسوخة أو مستخرجة من نصوص أصلية (Digital PDF).</li>
-                    <li><b>الملفات المصورة (Scanned):</b> الأوراق المصورة بكاميرا الهاتف أو السكنر غير مدعومة حالياً لأنها تُعامل كصور ثابتة وتتطلب معالجة ثقيلة قد تضر بسرعة محرك البحث.</li>
                   </ul>
 
-                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>4️⃣ الطباعة والتقارير (قيد التطوير):</h4>
+                  <h4 style={{ margin: '0 0 8px 0', color: c.accent, fontWeight: 'bold' }}>4️⃣ الطباعة والتقارير الاحترافية (جديد):</h4>
                   <ul style={{ margin: '0 0 5px 0', paddingRight: '20px', paddingLeft: '20px', color: c.textMuted }}>
-                    <li>سيتاح قريباً زر تصدير مباشر لنتائج البحث المصفاة في تقرير ورقي منظم بحجم <b>A4</b> جاهز للحفظ أو الطباعة المباشرة، مع خيارات متطورة لإخفاء أو إظهار العلامات الملونة للتقارير الرسمية.</li>
+                    <li>يمكنك الآن توليد تقرير فوري ومنسق بحجم <b>A4</b> لنتائج البحث المصفاة. يتسنى لك إخفاء المظهر الملون للتمييز أو شعار التطبيق للحصول على مستندات رسمية وخالية من الشوائب ومعدة للطباعة الفورية.</li>
                   </ul>
                 </div>
               )}
-
             </div>
 
             <button onClick={() => setIsSettingsOpen(false)} style={{ width: '100%', padding: '12px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>{t.saveClose}</button>
@@ -539,11 +619,9 @@ export default function App() {
         </div>
       )}
 
-      {/* ==========================================
-          4. نافذة البحث الشامل والمحسن مع التمييز
-          ========================================== */}
+      {/* نافذة البحث الشامل والمحسن مع التمييز والطباعة */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
+        <div className="screen-only" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: isMaximized ? 0 : '24px' }}>
           <div style={{
             background: c.cardBg, color: c.text, borderRadius: isMaximized ? '0px' : borderRadius, 
             width: isMaximized ? '100vw' : '90vw', height: isMaximized ? '100vh' : '85vh',
@@ -565,7 +643,6 @@ export default function App() {
                 <div style={{ textAlign: 'center', padding: '50px 20px', color: '#ef4444', fontWeight: 'bold' }}>⚠️ {t.importFirst}</div>
               ) : (
                 <>
-                  {/* صندوق البحث المحسن والذكي */}
                   <div style={{ marginBottom: '12px', position: 'relative' }}>
                     <input 
                       type="text"
@@ -573,37 +650,19 @@ export default function App() {
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       style={{
-                        width: '100%', 
-                        paddingTop: '14px', paddingBottom: '14px',
-                        paddingLeft: lang === 'ar' ? '16px' : '48px',
-                        paddingRight: lang === 'ar' ? '48px' : '16px',
-                        borderRadius: '8px', border: `1px solid ${c.border}`,
-                        background: c.bg, color: c.text,
+                        width: '100%', paddingTop: '14px', paddingBottom: '14px',
+                        paddingLeft: lang === 'ar' ? '16px' : '48px', paddingRight: lang === 'ar' ? '48px' : '16px',
+                        borderRadius: '8px', border: `1px solid ${c.border}`, background: c.bg, color: c.text,
                         boxSizing: 'border-box', fontSize: '16px', outline: 'none'
                       }}
                       autoFocus
                     />
-                    <span style={{ 
-                      position: 'absolute', 
-                      left: lang === 'ar' ? 'auto' : '16px', 
-                      right: lang === 'ar' ? '16px' : 'auto', 
-                      top: '50%', transform: 'translateY(-50%)',
-                      fontSize: '18px', pointerEvents: 'none'
-                    }}>🔍</span>
+                    <span style={{ position: 'absolute', left: lang === 'ar' ? 'auto' : '16px', right: lang === 'ar' ? '16px' : 'auto', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', pointerEvents: 'none' }}>🔍</span>
                   </div>
 
-                  {/* خيار تحكم المستخدم السريع في تفعيل/تعطيل الـ Highlight */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', justifyContent: 'flex-start' }}>
-                    <input 
-                      type="checkbox" 
-                      id="highlightToggle" 
-                      checked={useHighlight} 
-                      onChange={(e) => setUseHighlight(e.target.checked)}
-                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: c.accent }}
-                    />
-                    <label htmlFor="highlightToggle" style={{ fontSize: '13px', color: c.textMuted, cursor: 'pointer', fontWeight: '600' }}>
-                      {t.enableHighlight}
-                    </label>
+                    <input type="checkbox" id="highlightToggle" checked={useHighlight} onChange={(e) => setUseHighlight(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: c.accent }} />
+                    <label htmlFor="highlightToggle" style={{ fontSize: '13px', color: c.textMuted, cursor: 'pointer', fontWeight: '600' }}>{t.enableHighlight}</label>
                   </div>
 
                   {/* فلاتر الفرز المتقدمة */}
@@ -624,7 +683,33 @@ export default function App() {
                     </select>
                   </div>
 
-                  {/* قائمة عرض كروت البيانات */}
+                  {/* لوحة خيارات وتصدير التقارير (تظهر فقط عند وجود نتائج بحث) */}
+                  {searchQuery && processedResults.length > 0 && (
+                    <div style={{ 
+                      background: c.bg, border: `1px solid ${c.border}`, borderRadius: '8px', 
+                      padding: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '12px' 
+                    }}>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: c.accent }}>{t.printOptions}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                          <input type="checkbox" checked={printShowLogo} onChange={(e) => setPrintShowLogo(e.target.checked)} style={{ accentColor: c.accent }} />
+                          {t.showLogoOpt}
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                          <input type="checkbox" checked={printKeepHighlight} onChange={(e) => setPrintKeepHighlight(e.target.checked)} style={{ accentColor: c.accent }} />
+                          {t.keepHighlightOpt}
+                        </label>
+                      </div>
+                      <button onClick={handlePrint} style={{ 
+                        alignSelf: 'flex-start', padding: '10px 20px', background: '#3b82f6', 
+                        color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', 
+                        fontWeight: 'bold', fontSize: '14px', marginTop: '4px' 
+                      }}>
+                        {t.printReport}
+                      </button>
+                    </div>
+                  )}
+
                   <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
                     {searchInput === '' ? (
                       <div style={{ textAlign: 'center', padding: '60px 0', color: c.textMuted, fontSize: '14px' }}>{t.searchStart}</div>
@@ -638,42 +723,23 @@ export default function App() {
                           <div style={{ textAlign: 'center', color: '#ef4444', padding: '20px', fontWeight: 'bold' }}>لا توجد سجلات مطابقة للبحث الحالي.</div>
                         ) : (
                           processedResults.map((result) => (
-                            <div key={result.id} style={{
-                              background: c.bg, border: `1px solid ${c.border}`,
-                              borderRadius: borderRadius, overflow: 'hidden'
-                            }}>
-                              <div style={{
-                                background: c.headerBg, padding: '12px 20px', 
-                                borderBottom: `1px solid ${c.border}`, display: 'flex', 
-                                justifyContent: 'space-between', alignItems: 'center'
-                              }}>
+                            <div key={result.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: borderRadius, overflow: 'hidden' }}>
+                              <div style={{ background: c.headerBg, padding: '12px 20px', borderBottom: `1px solid ${c.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontWeight: 'bold', color: c.accent, fontSize: '14px' }}>
                                   {lang === 'ar' ? `الشيت: ${result.tableName} | الملف: ${result.dbName}` : `Sheet: ${result.tableName} | File: ${result.dbName}`}
                                 </span>
                               </div>
 
-                              <div style={{
-                                padding: '20px', display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                                gap: '20px 16px'
-                              }}>
+                              <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px 16px' }}>
                                 {result.fields.map((field, idx) => (
                                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'start' }}>
-                                    <span style={{ fontSize: '12px', color: c.textMuted, fontWeight: '600' }}>
-                                      {field.label}
-                                    </span>
-                                    {/* عرض النص مع التمييز الذكي المتغير */}
-                                    <span style={{
-                                      fontSize: fontSize, fontWeight: '700',
-                                      color: field.value === '—' ? c.textMuted : c.text,
-                                      wordBreak: 'break-all'
-                                    }}>
+                                    <span style={{ fontSize: '12px', color: c.textMuted, fontWeight: '600' }}>{field.label}</span>
+                                    <span style={{ fontSize: fontSize, fontWeight: '700', color: field.value === '—' ? c.textMuted : c.text, wordBreak: 'break-all' }}>
                                       {renderHighlightedText(field.value, searchQuery)}
                                     </span>
                                   </div>
                                 ))}
                               </div>
-
                             </div>
                           ))
                         )}
@@ -687,6 +753,78 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ==========================================
+          5. حاوية التقرير المخصص للطباعة فقط (Print-Only Container)
+          ========================================== */}
+      <div className="print-report-container" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr', fontFamily: 'system-ui, sans-serif' }}>
+        
+        {/* هيدر التقرير الرسمي المحتوي على الشعار الجاهز للتبديل مستقبلياً */}
+        {printShowLogo && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px double #000', paddingBottom: '12px', marginBottom: '25px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* رسمة هندسية مؤقتة كحامل للشعار (Placeholder) */}
+              <div style={{ width: '45px', height: '45px', borderRadius: '6px', border: '2px solid #0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px', color: '#0f172a' }}>🕵️‍♂️</div>
+              <div>
+                <h1 style={{ fontSize: '22px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{t.title}</h1>
+                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>{t.subTitle}</p>
+              </div>
+            </div>
+            <div style={{ textAlign: 'start', fontSize: '12px', color: '#475569' }}>
+              <div><b>{t.reportDate}</b></div>
+              <div>{currentDateString}</div>
+            </div>
+          </div>
+        )}
+
+        {/* معلومات التقرير وعنوانه الأساسي */}
+        <div className="print-header-badge" style={{ padding: '12px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #cbd5e1', textAlign: 'start' }}>
+          <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0f172a', fontWeight: 'bold' }}>{t.reportTitle}</h2>
+          <div style={{ fontSize: '13px', color: '#334155' }}>
+            <b>{t.searchWord}</b> <span style={{ padding: '2px 6px', background: '#e2e8f0', borderRadius: '4px', fontWeight: 'bold' }}>"{searchQuery}"</span>
+          </div>
+        </div>
+
+        {/* عرض وتفنيد البيانات مقسمة هندسياً بالملف والشيت على هيئة جداول رسمية */}
+        {Object.entries(structuredPrintData).map(([dbName, tablesGroup]) => (
+          <div key={dbName} className="print-file-section" style={{ textAlign: 'start' }}>
+            <h3 style={{ fontSize: '16px', color: '#1e3a8a', borderBottom: '2px solid #cbd5e1', paddingBottom: '4px', marginBottom: '12px', fontWeight: 'bold' }}>
+              {t.fileLabel} {dbName}
+            </h3>
+            
+            {Object.entries(tablesGroup).map(([tableName, rowsList]) => (
+              <div key={tableName} style={{ marginBottom: '20px' }}>
+                <h4 style={{ fontSize: '14px', color: '#0f766e', margin: '0 0 8px 0', fontWeight: 'bold' }}>
+                  {t.sheetLabel} {tableName}
+                </h4>
+                
+                <table className="print-table">
+                  <thead>
+                    <tr>
+                      {rowsList[0] && rowsList[0].map((f, idx) => (
+                        <th key={idx}>{f.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rowsList.map((rowFields, rIdx) => (
+                      <tr key={rIdx}>
+                        {rowFields.map((field, fIdx) => (
+                          <td key={fIdx}>
+                            {/* عرض نص الحقل في الجدول المطبوع مع التحكم بالـ Highlight */}
+                            {renderHighlightedText(field.value, searchQuery, !printKeepHighlight)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }
