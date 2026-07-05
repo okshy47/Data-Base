@@ -143,15 +143,19 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               color: current.text,
               fontSize: '14px',
               textAlign: 'right',
-              cursor: 'pointer',
               borderRadius: '6px',
               transition: 'background-color 0.2s'
             }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${current.border}15`}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              {/* هنا سيتم عرض نص النتيجة بناءً على طبيعة شيتات الإكسيل لديك */}
-              {result.name || result.text || JSON.stringify(result)}
+              {/* عرض منسق لبيانات الكنترول المستخرجة من شيت الإكسيل */}
+              {result['الاسم'] ? (
+                <div>
+                  <strong>{result['الاسم']}</strong> - {result['المادة']} 
+                  <span style={{ color: current.border, marginRight: '10px' }}>(التقدير: {result['التقدير']})</span>
+                </div>
+              ) : JSON.stringify(result)}
             </div>
           ))}
         </div>
