@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 
-// تعريف مدخلات المكون (Props)
+// تعريف واجهة الخصائص (Props Interface) لتحديد المدخلات المستقبلة من المكون الأب
 interface SearchInputProps {
   onSearchChange: (query: string) => void;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({ onSearchChange }) => {
+  // تعريف الحالة (State) المحلية لتخزين النص المكتوب في الخانة فوراً
   const [text, setText] = useState('');
 
   useEffect(() => {
-    // حد أدنى: إذا كان الحرف وحيداً لا ترهق المعالج بالبحث
+    // 1. شرط الأداء: إذا كان النص أقل من حرفين، نظف نتائج البحث ولا ترهق المعالج
     if (text.trim().length < 2) {
       onSearchChange('');
       return;
     }
 
-    // تقسيط الاستدعاء الزمني: انتظر 300 مللي ثانية بعد توقف المستخدم عن الكتابة
-    const delayDebounce = setTimeout(() => {
+    // 2. تأخير الإدخال الذكي (Debouncing): انتظر 300 مللي ثانية بعد توقف المستخدم عن الكتابة
+    const delayDebounceFn = setTimeout(() => {
       onSearchChange(text);
     }, 300);
 
-    // تنظيف المؤقت عند كتابة حرف جديد بسرعة
-    return () => clearTimeout(delayDebounce);
+    // 3. دالة التنظيف (Cleanup Function): حذف المؤقت الزمني القديم إذا استمر المستخدم في الكتابة بسرعة
+    return () => clearTimeout(delayDebounceFn);
   }, [text, onSearchChange]);
 
   return (
@@ -29,10 +30,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearchChange }) => {
       <input
         type="text"
         value={text}
-        onChange={(e) => setText(e.target.value)} // تحديث فوري وسلس للكتابة بدون Lag
-        placeholder="أدخل نص البحث (اسم، رقم جلوس، كود)..."
+        onChange={(e) => setText(e.target.value)} // تحديث لحظي وسلس جداً لقيمة الكتابة بدون أي تعليق
+        placeholder="أدخل نص البحث (اسم، رقم جلوس، كود المادة)..."
         style={{
-          width: '95%',
+          width: '100%',
           padding: '14px',
           borderRadius: '8px',
           border: '2px solid #00A3FF',
@@ -40,7 +41,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearchChange }) => {
           color: '#FFF',
           fontSize: '16px',
           textAlign: 'right',
-          outline: 'none'
+          outline: 'none',
+          boxSizing: 'border-box'
         }}
       />
     </div>
