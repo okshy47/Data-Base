@@ -1,12 +1,13 @@
 import React, { useState, useTransition } from 'react';
-import SearchInput from './components/SearchInput';
+// استيراد مكون البحث من ملف اللوجو الذي يحتوي على الكود حالياً لحل مشكلة الملف المفقود
+import SearchInput from './components/Logo';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const handleSearch = (value: string) => {
-    // استخدام الـ Transition لفصل تحديث الواجهة عن عمليات الفرز الثقيلة
+    // فصل تصفية البيانات في الخلفية لمنع الـ Lag تماماً
     startTransition(() => {
       setSearchQuery(value);
     });
@@ -14,12 +15,12 @@ export default function SearchScreen() {
 
   return (
     <div style={{ padding: '20px', color: '#fff', fontFamily: 'sans-serif' }}>
-      <h2 style={{ textAlign: 'right' }}>البحث الشامل</h2>
+      <h2 style={{ textAlign: 'right', color: '#00A3FF' }}>المستكشف الشامل لقواعد البيانات</h2>
       
-      {/* استدعاء مكون الإدخال الذكي المعالج للـ Lag */}
-      <SearchInput onSearch={handleSearch} />
+      {/* استدعاء مكون البحث الذكي المانع للتعليق */}
+      <SearchInput onSearch={handleSearch} placeholder="ابدأ الكتابة للبحث الفوري..." />
 
-      {isPending && <p style={{ textAlign: 'center', color: '#38BDF8' }}>جاري الفرز الفوري...</p>}
+      {isPending && <p style={{ textAlign: 'center', color: '#38BDF8' }}>جاري فرز وتحديث البيانات...</p>}
 
       <div style={{ marginTop: '20px' }}>
         {searchQuery && (
