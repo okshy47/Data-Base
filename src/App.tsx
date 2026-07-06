@@ -1,16 +1,15 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Logo, LogoTheme } from './components/Logo';
 import { ThemeToggle } from './components/ThemeToggle';
-import { SearchModal } from './components/SearchModal';
+import { SearchScreen } from './SearchScreen';
 import { PrintReport } from './components/PrintReport';
 
 export default function App() {
   // 1. إدارة حالات المظهر (Theme) والأوضاع الخمسة
   const [currentTheme, setCurrentTheme] = useState<LogoTheme>('dark-blue');
   
-  // 2. إدارة حالات البيانات والتصفية ثلاثية الأبعاد (ملف، شيت، عمود)
+  // 2. إدارة حالات الواجهة والتحكم في ظهور المستكشف
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   
   // بيانات تجريبية تحاكي شيتات الكنترول وقواعد البيانات الضخمة المستوردة
   const [databasePayload] = useState<any[]>([
@@ -18,20 +17,6 @@ export default function App() {
     { 'رقم الجلوس': '1026', 'الاسم': 'محمود حسين أحمد', 'المادة': 'إدارة العمليات واللوجستيات', 'الدرجة': '88', 'التقدير': 'جيد جداً' },
     { 'رقم الجلوس': '1027', 'الاسم': 'سارة عبد الرحمن', 'المادة': 'تحليل البيانات المتقدم', 'الدرجة': '92', 'التقدير': 'امتياز' },
   ]);
-
-  // دالة الفلترة الفورية السريعة للبحث الشامل والمحمية بـ UseMemo لمنع الـ Lag
-  const filteredResults = useMemo(() => {
-    if (!globalSearchQuery.trim()) return [];
-    return databasePayload.filter((row) => 
-      Object.values(row).some((val) => 
-        String(val).toLowerCase().includes(globalSearchQuery.toLowerCase())
-      )
-    );
-  }, [globalSearchQuery, databasePayload]);
-
-  const handleSearchCommit = useCallback((query: string) => {
-    setGlobalSearchQuery(query);
-  }, []);
 
   // إعداد مصفوفة الألوان المتطابقة مع الواجهة الرئيسية للأوضاع الخمسة
   const themeStyles = {
@@ -103,14 +88,40 @@ export default function App() {
         </button>
       </div>
 
-      {/* نافذة البحث المنبثقة (Modal) المعزولة والمحسنة */}
-      <SearchModal 
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        theme={currentTheme}
-        onSearch={handleSearchCommit}
-        searchResults={filteredResults}
-      />
+      {/* شاشة البحث الفوري المتكاملة والمدمجة بذاتها تفتح عند الضغط على الزر */}
+      {isSearchOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          backgroundColor: currentStyle.bg,
+          overflowY: 'auto'
+        }}>
+          {/* زر العودة للواجهة الرئيسية */}
+          <button 
+            onClick={() => setIsSearchOpen(false)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              left: '20px',
+              padding: '10px 20px',
+              backgroundColor: '#FF3B30',
+              color: '#FFF',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              zIndex: 10000
+            }}
+          >
+            ← إغلاق المستكشف
+          </button>
+          <SearchScreen />
+        </div>
+      )}
 
       {/* محرك ومكون تقارير الطباعة المنسق لورق A4 */}
       <PrintReport data={databasePayload} title="تقرير نتائج مستكشف الكنترول العام" />
